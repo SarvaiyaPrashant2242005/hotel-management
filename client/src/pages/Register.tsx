@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaLock, FaUser, FaPhone } from "react-icons/fa";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +32,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
       <main className="flex-1 flex items-center justify-center px-4 py-12 bg-gradient-to-br from-secondary/10 via-background to-primary/10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -205,7 +202,6 @@ const Register = () => {
           </div>
         </motion.div>
       </main>
-      <Footer />
     </div>
   );
 };
