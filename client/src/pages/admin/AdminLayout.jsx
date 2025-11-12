@@ -16,9 +16,9 @@ export default function AdminLayout() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="font-semibold tracking-tight">Hotel Admin</Link>
+          <Link to="/admin" className="font-semibold tracking-tight">Hotel Admin</Link>
           <nav className="text-sm text-muted-foreground">
-            <Link to="/" className="hover:underline">Back to site</Link>
+            <Link to="/admin" className="hover:underline">Back to site</Link>
           </nav>
         </div>
       </header>
