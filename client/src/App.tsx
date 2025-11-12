@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Hotels from "./pages/Hotels";
 import HotelDetail from "./pages/HotelDetail";
@@ -18,6 +18,25 @@ import BookingsPage from "./pages/admin/Bookings";
 import HotelsPage from "./pages/admin/Hotels";
 import RoomsPage from "./pages/admin/Rooms";
 import PaymentsPage from "./pages/admin/Payments";
+import { JSX } from "react/jsx-runtime";
+
+function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: string[] }) {
+  const location = useLocation();
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const rawUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const user = rawUser ? JSON.parse(rawUser) : null;
+
+  if (!token) {
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  if (roles && user && !roles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 const queryClient = new QueryClient();
 
@@ -35,7 +54,14 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="hotels" element={<HotelsPage />} />
             <Route path="rooms" element={<RoomsPage />} />

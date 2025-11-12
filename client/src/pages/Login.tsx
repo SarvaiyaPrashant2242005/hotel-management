@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 
@@ -10,11 +10,56 @@ import { Label } from "@/components/ui/label";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (token) {
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Static form - no actual functionality
-    console.log("Login attempt:", { email, password });
+    setError(null);
+    setLoading(true);
+
+    try {
+      const baseUrl = "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/users/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(raw);
+      } catch {}
+      if (!res.ok) {
+        const msg = data?.message || raw || "Login failed";
+        throw new Error(msg);
+      }
+
+      const { token, user } = data;
+      if (!token || !user) {
+        throw new Error("Invalid response from server");
+      }
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      const redirect = searchParams.get("redirect");
+      navigate(redirect || "/home", { replace: true });
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -98,11 +143,17 @@ const Login = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                <Button type="submit" className="w-full">
-                  Sign In
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </motion.div>
             </form>
+
+            {error && (
+              <div className="mt-4 text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
 
             <motion.div
               initial={{ opacity: 0 }}

@@ -37,10 +37,29 @@ const Home = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto"
+            className="text-xl md:text-2xl text-white/90 mb-4 max-w-2xl mx-auto"
           >
             Discover amazing hotels worldwide and create unforgettable memories
           </motion.p>
+
+          {(() => {
+            try {
+              const raw = localStorage.getItem("user");
+              const user = raw ? JSON.parse(raw) : null;
+              return user?.fullName ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.6 }}
+                  className="text-lg md:text-xl text-white/90 mb-8"
+                >
+                  Welcome, {user.fullName}
+                </motion.div>
+              ) : null;
+            } catch {
+              return null;
+            }
+          })()}
 
           {/* Search Bar */}
           <SearchBar />

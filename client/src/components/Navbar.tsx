@@ -19,13 +19,23 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { name: "Home", path: "/" },
+    { name: "Home", path: "/home" },
     { name: "Hotels", path: "/hotels" },
     { name: "About Us", path: "/about" },
     { name: "Contact", path: "/contact" },
-  ];
+  ] as const;
 
   const isActive = (path: string) => location.pathname === path;
+
+  const [user, setUser] = useState<{ fullName?: string } | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      setUser(raw ? JSON.parse(raw) : null);
+    } catch {
+      setUser(null);
+    }
+  }, [location.pathname]);
 
   return (
     <motion.nav
@@ -77,16 +87,22 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link to="/login">
-              <Button variant="ghost" className="text-foreground hover:text-primary">
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                Register
-              </Button>
-            </Link>
+            {user?.fullName ? (
+              <span className="text-sm font-medium text-foreground">Hi, {user.fullName}</span>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-foreground hover:text-primary">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                    Register
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -119,16 +135,22 @@ const Navbar = () => {
               </Link>
             ))}
             <div className="flex flex-col gap-2 pt-4">
-              <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full">
-                  Login
-                </Button>
-              </Link>
-              <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="w-full bg-primary hover:bg-primary/90">
-                  Register
-                </Button>
-              </Link>
+              {user?.fullName ? (
+                <div className="w-full text-center py-2 font-medium">Hi, {user.fullName}</div>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button className="w-full bg-primary hover:bg-primary/90">
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}

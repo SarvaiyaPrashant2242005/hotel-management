@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaLock, FaUser, FaPhone } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    fullName: "",
     email: "",
-    phone: "",
+    contactNo: "",
     address: "",
+    role: "user" as "user" | "admin",
     password: "",
     confirmPassword: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -24,10 +29,45 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Static form - no actual functionality
-    console.log("Register attempt:", formData);
+    setError(null);
+    setSuccess(null);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const baseUrl = "http://localhost:5000";
+ 
+      const res = await fetch(`${baseUrl}/api/users/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          contactNo: formData.contactNo,
+          address: formData.address,
+          role: formData.role,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Registration failed");
+      }
+
+      setSuccess("Registration successful. Please sign in.");
+      setTimeout(() => navigate("/login", { replace: true }), 800);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,21 +90,21 @@ const Register = () => {
               <p className="text-muted-foreground">Join us and start booking</p>
             </motion.div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Label htmlFor="name" className="text-foreground">Full Name</Label>
+                <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
                 <div className="relative mt-2">
                   <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="name"
-                    name="name"
+                    id="fullName"
+                    name="fullName"
                     type="text"
                     placeholder="John Doe"
-                    value={formData.name}
+                    value={formData.fullName}
                     onChange={handleChange}
                     className="pl-10"
                     required
@@ -98,15 +138,15 @@ const Register = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <Label htmlFor="phone" className="text-foreground">Phone Number</Label>
+                <Label htmlFor="contactNo" className="text-foreground">Phone Number</Label>
                 <div className="relative mt-2">
                   <FaPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="phone"
-                    name="phone"
+                    id="contactNo"
+                    name="contactNo"
                     type="tel"
-                    placeholder="+1 (555) 000-0000"
-                    value={formData.phone}
+                    placeholder="+91 93672 21232"
+                    value={formData.contactNo}
                     onChange={handleChange}
                     className="pl-10"
                     required
@@ -137,6 +177,26 @@ const Register = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6 }}
+              >
+                <Label htmlFor="role" className="text-foreground">Role</Label>
+                <div className="mt-2">
+                  <select
+                    id="role"
+                    name="role"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as "user" | "admin" })}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.62 }}
               >
                 <Label htmlFor="password" className="text-foreground">Password</Label>
                 <div className="relative mt-2">
@@ -180,11 +240,22 @@ const Register = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
               >
-                <Button type="submit" className="w-full">
-                  Create Account
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creating..." : "Create Account"}
                 </Button>
               </motion.div>
             </form>
+
+            {error && (
+              <div className="mt-4 text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mt-4 text-sm text-green-600" role="status">
+                {success}
+              </div>
+            )}
 
             <motion.div
               initial={{ opacity: 0 }}
