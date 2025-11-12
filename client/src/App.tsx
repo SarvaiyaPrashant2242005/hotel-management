@@ -11,6 +11,13 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import UsersPage from "./pages/admin/Users";
+import BookingsPage from "./pages/admin/Bookings";
+import HotelsPage from "./pages/admin/Hotels";
+import RoomsPage from "./pages/admin/Rooms";
+import PaymentsPage from "./pages/admin/Payments";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +35,14 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="hotels" element={<HotelsPage />} />
+            <Route path="rooms" element={<RoomsPage />} />
+            <Route path="users" element={<UsersPage />} />
+            <Route path="bookings" element={<BookingsPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

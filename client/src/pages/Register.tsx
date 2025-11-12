@@ -7,17 +7,19 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
+    address: "",
     password: "",
     confirmPassword: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -110,6 +112,25 @@ const Register = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     className="pl-10"
+                    required
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.55 }}
+              >
+                <Label htmlFor="address" className="text-foreground">Address</Label>
+                <div className="mt-2">
+                  <Textarea
+                    id="address"
+                    name="address"
+                    placeholder="Street, City, State, ZIP"
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="min-h-24"
                     required
                   />
                 </div>
