@@ -17,8 +17,14 @@ const Login = () => {
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (token) {
-      navigate("/home", { replace: true });
+    const rawUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    let existingUser: any = null;
+    try {
+      existingUser = rawUser ? JSON.parse(rawUser) : null;
+    } catch {}
+    if (token && existingUser) {
+      const dest = existingUser.role === "admin" ? "/admin" : "/home";
+      navigate(dest, { replace: true });
     }
   }, [navigate]);
 
@@ -44,7 +50,6 @@ const Login = () => {
         const msg = data?.message || raw || "Login failed";
         throw new Error(msg);
       }
-
       const { token, user } = data;
       if (!token || !user) {
         throw new Error("Invalid response from server");
@@ -54,7 +59,8 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify(user));
 
       const redirect = searchParams.get("redirect");
-      navigate(redirect || "/home", { replace: true });
+      const defaultTarget = user.role === "admin" ? "/admin" : "/home";
+      navigate(redirect || defaultTarget, { replace: true });
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {

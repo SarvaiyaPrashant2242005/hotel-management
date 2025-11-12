@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaHotel } from "react-icons/fa";
 import { HiMenu, HiX } from "react-icons/hi";
@@ -9,6 +9,15 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,9 +99,16 @@ const Navbar = () => {
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {user?.fullName ? (
-              <span className="text-sm font-medium text-teal-400">
-                Hi, {user.fullName}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-teal-400">Hi, {user.fullName}</span>
+                <Button
+                  variant="ghost"
+                  className="text-teal-400 hover:text-teal-300 border border-teal-400 hover:border-teal-300"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </div>
             ) : (
               <>
                 <Link to="/login">
@@ -145,8 +161,18 @@ const Navbar = () => {
             ))}
             <div className="flex flex-col gap-2 pt-4">
               {user?.fullName ? (
-                <div className="w-full text-center py-2 font-medium text-teal-400">
-                  Hi, {user.fullName}
+                <div className="w-full text-center py-2 font-medium text-teal-400 flex items-center justify-center gap-3">
+                  <span>Hi, {user.fullName}</span>
+                  <Button
+                    variant="outline"
+                    className="text-teal-400 border border-teal-400 hover:text-teal-300 hover:border-teal-300"
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Logout
+                  </Button>
                 </div>
               ) : (
                 <>
