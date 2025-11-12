@@ -16,7 +16,7 @@ app.use(express.json()); // Parse incoming JSON requests
 // ✅ Enable CORS for your frontend origin
 app.use(
   cors({
-origin: ["http://localhost:8080", "https://hotel-management-rose-zeta.vercel.app/"],
+origin: ["http://localhost:8080", "https://hotel-management-rose-zeta.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // if you use cookies or authentication
   })
