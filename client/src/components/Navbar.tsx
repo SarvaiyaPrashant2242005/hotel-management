@@ -56,9 +56,9 @@ const Navbar = () => {
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
             >
-              <FaHotel className="text-3xl text-primary" />
+              <FaHotel className="text-3xl text-teal-400" />
             </motion.div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="text-2xl font-bold text-teal-400">
               StayEase
             </span>
           </Link>
@@ -69,15 +69,17 @@ const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`relative font-medium transition-colors hover:text-primary ${
-                  isActive(link.path) ? "text-primary" : "text-foreground"
+                className={`relative font-medium transition-colors hover:text-teal-300 ${
+                  isActive(link.path)
+                    ? "text-teal-400"
+                    : "text-teal-400/80"
                 }`}
               >
                 {link.name}
                 {isActive(link.path) && (
                   <motion.div
                     layoutId="navbar-indicator"
-                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-teal-400"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -88,16 +90,21 @@ const Navbar = () => {
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {user?.fullName ? (
-              <span className="text-sm font-medium text-foreground">Hi, {user.fullName}</span>
+              <span className="text-sm font-medium text-teal-400">
+                Hi, {user.fullName}
+              </span>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" className="text-foreground hover:text-primary">
+                  <Button
+                    variant="ghost"
+                    className="text-teal-400 hover:text-teal-300 border border-teal-400 hover:border-teal-300"
+                  >
                     Login
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Button className="bg-teal-400 hover:bg-teal-300 text-white">
                     Register
                   </Button>
                 </Link>
@@ -108,7 +115,7 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-2xl text-foreground"
+            className="md:hidden text-2xl text-teal-400"
           >
             {isMobileMenuOpen ? <HiX /> : <HiMenu />}
           </button>
@@ -127,8 +134,10 @@ const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block py-2 font-medium transition-colors hover:text-primary ${
-                  isActive(link.path) ? "text-primary" : "text-foreground"
+                className={`block py-2 font-medium transition-colors hover:text-teal-300 ${
+                  isActive(link.path)
+                    ? "text-teal-400"
+                    : "text-teal-400/80"
                 }`}
               >
                 {link.name}
@@ -136,16 +145,21 @@ const Navbar = () => {
             ))}
             <div className="flex flex-col gap-2 pt-4">
               {user?.fullName ? (
-                <div className="w-full text-center py-2 font-medium">Hi, {user.fullName}</div>
+                <div className="w-full text-center py-2 font-medium text-teal-400">
+                  Hi, {user.fullName}
+                </div>
               ) : (
                 <>
                   <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full text-teal-400 border border-teal-400 hover:text-teal-300 hover:border-teal-300"
+                    >
                       Login
                     </Button>
                   </Link>
                   <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button className="w-full bg-primary hover:bg-primary/90">
+                    <Button className="w-full bg-teal-400 hover:bg-teal-300 text-white">
                       Register
                     </Button>
                   </Link>
