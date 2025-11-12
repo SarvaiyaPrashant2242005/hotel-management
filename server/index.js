@@ -1,7 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const cors = require("cors"); // 🧩 Import CORS
 const connectDB = require("./config/db");
-const userRoutes = require("./routes/userRoutes"); // ✅ fixed typo (userRotes → userRoutes)
+const userRoutes = require("./routes/userRoutes");
 const hotelRoutes = require("./routes/hotelRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 
@@ -12,11 +13,20 @@ const app = express();
 // 🧩 Middleware
 app.use(express.json()); // Parse incoming JSON requests
 
+// ✅ Enable CORS for your frontend origin
+app.use(
+  cors({
+origin: ["http://localhost:8080", "https://hotel-management-rose-zeta.vercel.app/"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // if you use cookies or authentication
+  })
+);
+
 // 🗄️ Connect to MongoDB
 connectDB();
 
 // 🧭 Routes
-app.use("/api/users", userRoutes); // added /api prefix for clarity
+app.use("/api/users", userRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/rooms", roomRoutes);
 
