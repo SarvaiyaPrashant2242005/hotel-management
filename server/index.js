@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes"); // ✅ fixed typo (userRotes → userRoutes)
 const hotelRoutes = require("./routes/hotelRoutes");
+const roomRoutes = require("./routes/roomRoutes");
 
 dotenv.config(); // Load environment variables
 
@@ -17,6 +18,7 @@ connectDB();
 // 🧭 Routes
 app.use("/api/users", userRoutes); // added /api prefix for clarity
 app.use("/api/hotels", hotelRoutes);
+app.use("/api/rooms", roomRoutes);
 
 // 🌍 Default route
 app.get("/", (req, res) => {
