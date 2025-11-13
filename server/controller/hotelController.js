@@ -116,6 +116,9 @@ const hotelController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  // get hotel by userid
+
 };
 
 module.exports = hotelController;
