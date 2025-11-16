@@ -98,18 +98,28 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            {user?.fullName ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-teal-400">Hi, {user.fullName}</span>
-                <Button
-                  variant="ghost"
-                  className="text-teal-400 hover:text-teal-300 border border-teal-400 hover:border-teal-300"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-              </div>
-            ) : (
+{user?.fullName ? (
+  <div className="flex items-center gap-3">
+    <span className="text-sm font-medium text-teal-400">
+      Hi, {user.fullName}
+    </span>
+    <Link to="/my-bookings">
+      <Button
+        variant="ghost"
+        className="text-teal-400 hover:text-teal-300 border border-teal-400 hover:border-teal-300"
+      >
+        My Bookings
+      </Button>
+    </Link>
+    <Button
+      variant="ghost"
+      className="text-teal-400 hover:text-teal-300 border border-teal-400 hover:border-teal-300"
+      onClick={handleLogout}
+    >
+      Logout
+    </Button>
+  </div>
+) : (
               <>
                 <Link to="/login">
                   <Button
@@ -161,20 +171,31 @@ const Navbar = () => {
             ))}
             <div className="flex flex-col gap-2 pt-4">
               {user?.fullName ? (
-                <div className="w-full text-center py-2 font-medium text-teal-400 flex items-center justify-center gap-3">
-                  <span>Hi, {user.fullName}</span>
-                  <Button
-                    variant="outline"
-                    className="text-teal-400 border border-teal-400 hover:text-teal-300 hover:border-teal-300"
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                  >
-                    Logout
-                  </Button>
-                </div>
-              ) : (
+  <div className="w-full text-center py-2 font-medium text-teal-400 flex items-center justify-center gap-3">
+    <span>Hi, {user.fullName}</span>
+    <Link
+      to="/my-bookings"
+      onClick={() => setIsMobileMenuOpen(false)}
+    >
+      <Button
+        variant="outline"
+        className="text-teal-400 border border-teal-400 hover:text-teal-300 hover:border-teal-300 mr-2"
+      >
+        My Bookings
+      </Button>
+    </Link>
+    <Button
+      variant="outline"
+      className="text-teal-400 border border-teal-400 hover:text-teal-300 hover:border-teal-300"
+      onClick={() => {
+        handleLogout();
+        setIsMobileMenuOpen(false);
+      }}
+    >
+      Logout
+    </Button>
+  </div>
+) : (
                 <>
                   <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
                     <Button

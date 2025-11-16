@@ -1,15 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { hotels } from "@/data/hotels";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
+import type { PublicHotel } from "./HotelCard";
 
-const FeaturedSlider = () => {
+interface FeaturedSliderProps {
+  hotels: PublicHotel[];
+}
+
+const FeaturedSlider = ({ hotels }: FeaturedSliderProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const featuredHotels = hotels.filter((hotel) => hotel.featured);
+
+  const featuredHotels = useMemo(() => {
+    // if you later add a "featured" flag on backend, filter here
+    return hotels;
+  }, [hotels]);
 
   useEffect(() => {
+    if (featuredHotels.length === 0) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % featuredHotels.length);
     }, 5000);
@@ -17,20 +26,28 @@ const FeaturedSlider = () => {
   }, [featuredHotels.length]);
 
   const handlePrev = () => {
+    if (featuredHotels.length === 0) return;
     setCurrentIndex((prev) => (prev - 1 + featuredHotels.length) % featuredHotels.length);
   };
 
   const handleNext = () => {
+    if (featuredHotels.length === 0) return;
     setCurrentIndex((prev) => (prev + 1) % featuredHotels.length);
   };
 
   if (featuredHotels.length === 0) return null;
 
+  const hotel = featuredHotels[currentIndex];
+  const image =
+    hotel.images && hotel.images[0]
+      ? hotel.images[0]
+      : "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop";
+
   return (
     <div className="relative overflow-hidden rounded-3xl h-[500px] shadow-hover">
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentIndex}
+          key={hotel._id}
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -100 }}
@@ -39,8 +56,8 @@ const FeaturedSlider = () => {
         >
           {/* Background Image */}
           <img
-            src={featuredHotels[currentIndex].image}
-            alt={featuredHotels[currentIndex].name}
+            src={image}
+            alt={hotel.name}
             className="w-full h-full object-cover"
           />
 
@@ -62,33 +79,27 @@ const FeaturedSlider = () => {
                 <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
                   <FaStar className="text-secondary" />
                   <span className="text-white font-semibold">
-                    {featuredHotels[currentIndex].rating}
+                    4.8
                   </span>
                 </div>
               </div>
 
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-3">
-                {featuredHotels[currentIndex].name}
+                {hotel.name}
               </h2>
 
               <p className="text-white/90 text-lg mb-2">
-                {featuredHotels[currentIndex].location}
+                {hotel.city}, {hotel.state}, {hotel.country}
               </p>
 
               <p className="text-white/80 mb-6 line-clamp-2">
-                {featuredHotels[currentIndex].description}
+                {hotel.description}
               </p>
 
               <div className="flex items-center gap-4">
-                <div className="text-white">
-                  <span className="text-4xl font-bold">
-                    ${featuredHotels[currentIndex].price}
-                  </span>
-                  <span className="text-white/80 ml-2">/night</span>
-                </div>
-                <Link to={`/hotel/${featuredHotels[currentIndex].id}`}>
+                <Link to={`/hotel/${hotel._id}`}>
                   <Button size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    Book Now
+                    View Rooms
                   </Button>
                 </Link>
               </div>

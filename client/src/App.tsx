@@ -19,6 +19,7 @@ import HotelsPage from "./pages/admin/Hotels";
 import RoomsPage from "./pages/admin/Rooms";
 import PaymentsPage from "./pages/admin/Payments";
 import { JSX } from "react/jsx-runtime";
+import MyBookings from "./pages/MyBookings";
 
 function ProtectedRoute({ children, roles }: { children: JSX.Element; roles?: string[] }) {
   const location = useLocation();
@@ -55,6 +56,8 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+
           <Route
             path="/admin"
             element={

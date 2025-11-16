@@ -1,12 +1,33 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SearchBar from "@/components/SearchBar";
-import HotelCard from "@/components/HotelCard";
+import HotelCard, { PublicHotel } from "@/components/HotelCard";
 import FeaturedSlider from "@/components/FeaturedSlider";
-import { hotels } from "@/data/hotels";
+
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 const Home = () => {
+  const [hotels, setHotels] = useState<PublicHotel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/hotels`);
+        if (!res.ok) throw new Error("Failed to load hotels");
+        const data = await res.json();
+        setHotels(Array.isArray(data) ? data : []);
+      } catch {
+        setHotels([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -96,7 +117,14 @@ const Home = () => {
           <p className="text-center text-muted-foreground mb-12 text-lg">
             Handpicked luxury accommodations just for you
           </p>
-          <FeaturedSlider />
+          {!loading && hotels.length > 0 && (
+            <FeaturedSlider hotels={hotels} />
+          )}
+          {!loading && hotels.length === 0 && (
+            <p className="text-center text-muted-foreground">
+              No featured hotels available yet.
+            </p>
+          )}
         </motion.div>
       </section>
 
@@ -115,11 +143,25 @@ const Home = () => {
             Browse our collection of stunning properties
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {hotels.map((hotel, index) => (
-              <HotelCard key={hotel.id} hotel={hotel} index={index} />
-            ))}
-          </div>
+          {loading && (
+            <div className="text-center text-muted-foreground">
+              Loading hotels...
+            </div>
+          )}
+
+          {!loading && hotels.length === 0 && (
+            <div className="text-center text-muted-foreground">
+              No hotels available.
+            </div>
+          )}
+
+          {!loading && hotels.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {hotels.map((hotel, index) => (
+                <HotelCard key={hotel._id} hotel={hotel} index={index} />
+              ))}
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -141,7 +183,9 @@ const Home = () => {
                 transition={{ delay: index * 0.1, duration: 0.6 }}
               >
                 <div className="text-5xl font-bold mb-2">{stat.number}</div>
-                <div className="text-primary-foreground/80 text-lg">{stat.label}</div>
+                <div className="text-primary-foreground/80 text-lg">
+                  {stat.label}
+                </div>
               </motion.div>
             ))}
           </div>

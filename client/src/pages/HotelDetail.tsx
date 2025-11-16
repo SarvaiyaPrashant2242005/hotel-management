@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
+
+// allow window.Razorpay
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 type PublicHotel = {
   _id: string;
@@ -42,11 +49,18 @@ type Room = {
 
 const HotelDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const [hotel, setHotel] = useState<PublicHotel | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // booking/payment state
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
+  const [guests, setGuests] = useState(2);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -67,17 +81,16 @@ const HotelDetail = () => {
         const hotelData = await hotelRes.json();
         const roomsData = await roomsRes.json();
 
-setHotel(hotelData as PublicHotel);
+        setHotel(hotelData as PublicHotel);
 
-// API returns: { count: number, rooms: Room[] }
-const extractedRooms =
-  Array.isArray(roomsData)
-    ? roomsData
-    : Array.isArray(roomsData.rooms)
-    ? roomsData.rooms
-    : [];
+        // API returns: { count, rooms: Room[] }
+        const extractedRooms = Array.isArray(roomsData)
+          ? roomsData
+          : Array.isArray(roomsData.rooms)
+          ? roomsData.rooms
+          : [];
 
-setRooms(extractedRooms);
+        setRooms(extractedRooms);
       } catch (err: any) {
         setError(err.message || "Error loading hotel or rooms");
         setHotel(null);
@@ -89,6 +102,169 @@ setRooms(extractedRooms);
 
     load();
   }, [id]);
+
+  const loadRazorpayScript = () =>
+    new Promise<void>((resolve, reject) => {
+      if (document.getElementById("razorpay-checkout-js")) {
+        return resolve();
+      }
+      const script = document.createElement("script");
+      script.id = "razorpay-checkout-js";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Razorpay"));
+      document.body.appendChild(script);
+    });
+
+  const getNights = (start: string, end: string) => {
+    const d1 = new Date(start);
+    const d2 = new Date(end);
+    const diff = d2.getTime() - d1.getTime();
+    const nights = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return nights > 0 ? nights : 0;
+  };
+
+  const handleBookRoom = async (room: Room) => {
+    try {
+      if (!hotel) return;
+
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+      const rawUser =
+        typeof window !== "undefined"
+          ? localStorage.getItem("user")
+          : null;
+
+      if (!token) {
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        return navigate(`/login?redirect=${redirect}`, { replace: true });
+      }
+
+      const user = rawUser ? JSON.parse(rawUser) : null;
+
+      if (!checkIn || !checkOut) {
+        alert("Please select check-in and check-out dates.");
+        return;
+      }
+
+      const nights = getNights(checkIn, checkOut);
+      if (nights <= 0) {
+        alert("Check-out date must be after check-in date.");
+        return;
+      }
+
+      const basePerNight = room.price + (room.taxesAndFees || 0);
+      const totalPrice = basePerNight * nights;
+
+      setActiveRoomId(room._id);
+
+      // 1) Create booking
+      const bookingRes = await fetch(`${baseUrl}/api/bookings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          hotelId: hotel._id,
+          roomId: room._id,
+          checkIn,
+          checkOut,
+          totalPrice,
+        }),
+      });
+
+      if (!bookingRes.ok) {
+        const err = await bookingRes.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to create booking");
+      }
+
+      const bookingData = await bookingRes.json();
+      const bookingId = bookingData?.booking?._id || bookingData?._id;
+
+      if (!bookingId) {
+        throw new Error("Booking ID missing from response");
+      }
+
+      // 2) Create Razorpay order
+      const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      if (!orderRes.ok) {
+        const err = await orderRes.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to create payment order");
+      }
+
+      const orderData = await orderRes.json();
+      await loadRazorpayScript();
+
+      const options = {
+        key: orderData.key,
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: hotel.name,
+        description: `Booking for room ${room.roomNumber}`,
+        order_id: orderData.orderId,
+        prefill: {
+          name: user?.fullName || "",
+          email: user?.email || "",
+          contact: user?.contactNo || "",
+        },
+        theme: {
+          color: "#14b8a6",
+        },
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch(`${baseUrl}/api/payments/verify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                bookingId,
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              const err = await verifyRes.json().catch(() => ({}));
+              alert(err?.message || "Payment verification failed");
+              return;
+            }
+
+            alert("Payment successful! Your booking is confirmed.");
+          } catch (err: any) {
+            alert(err?.message || "Payment verification failed");
+          } finally {
+            setActiveRoomId(null);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setActiveRoomId(null);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to start payment");
+      setActiveRoomId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -254,7 +430,13 @@ setRooms(extractedRooms);
                           {r.dealText}
                         </p>
                       )}
-                      <Button className="mt-1">Book Now</Button>
+                      <Button
+                        className="mt-1"
+                        disabled={!r.isAvailable || activeRoomId === r._id}
+                        onClick={() => handleBookRoom(r)}
+                      >
+                        {activeRoomId === r._id ? "Processing..." : "Book Now"}
+                      </Button>
                       <p className="text-xs text-muted-foreground">
                         Status:{" "}
                         <span className="capitalize">{status}</span>
@@ -266,7 +448,7 @@ setRooms(extractedRooms);
             })}
           </div>
 
-          {/* Hotel info sidebar */}
+          {/* Hotel info + booking inputs */}
           <div className="space-y-4">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -286,6 +468,55 @@ setRooms(extractedRooms);
               <p className="text-sm text-muted-foreground mt-2">
                 <span className="font-medium">Contact: </span>
                 {hotel.contactNumber}
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-card rounded-xl shadow-soft p-6 space-y-4"
+            >
+              <h3 className="text-lg font-semibold">Booking Details</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Check-in
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Check-out
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Guests
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+                    value={guests}
+                    onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Select dates and guests, then choose a room and click{" "}
+                <span className="font-medium">Book Now</span>.
               </p>
             </motion.div>
           </div>
