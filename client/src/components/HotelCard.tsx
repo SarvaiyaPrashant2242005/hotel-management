@@ -1,15 +1,31 @@
 import { motion } from "framer-motion";
-import { FaStar, FaMapMarkerAlt } from "react-icons/fa";
+import { FaMapMarkerAlt } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { Hotel } from "@/data/hotels";
 import { Button } from "./ui/button";
 
+export type PublicHotel = {
+  _id: string;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  contactNumber: string;
+  images?: string[];
+};
+
 interface HotelCardProps {
-  hotel: Hotel;
+  hotel: PublicHotel;
   index: number;
 }
 
 const HotelCard = ({ hotel, index }: HotelCardProps) => {
+  const image =
+    hotel.images && hotel.images[0]
+      ? hotel.images[0]
+      : "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -24,20 +40,11 @@ const HotelCard = ({ hotel, index }: HotelCardProps) => {
         <motion.img
           whileHover={{ scale: 1.1 }}
           transition={{ duration: 0.4 }}
-          src={hotel.image}
+          src={image}
           alt={hotel.name}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        {hotel.featured && (
-          <motion.div
-            initial={{ x: -100 }}
-            animate={{ x: 0 }}
-            className="absolute top-4 left-0 bg-secondary text-secondary-foreground px-4 py-1 font-semibold text-sm"
-          >
-            Featured
-          </motion.div>
-        )}
       </div>
 
       {/* Content */}
@@ -46,15 +53,13 @@ const HotelCard = ({ hotel, index }: HotelCardProps) => {
           <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
             {hotel.name}
           </h3>
-          <div className="flex items-center gap-1 bg-secondary/20 px-2 py-1 rounded-lg">
-            <FaStar className="text-secondary text-sm" />
-            <span className="font-semibold text-sm">{hotel.rating}</span>
-          </div>
         </div>
 
-        <div className="flex items-center gap-2 text-muted-foreground mb-4">
+        <div className="flex items-center gap-2 text-muted-foreground mb-2">
           <FaMapMarkerAlt className="text-primary" />
-          <span className="text-sm">{hotel.location}</span>
+          <span className="text-sm">
+            {hotel.city}, {hotel.state}, {hotel.country}
+          </span>
         </div>
 
         <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
@@ -62,13 +67,12 @@ const HotelCard = ({ hotel, index }: HotelCardProps) => {
         </p>
 
         <div className="flex items-center justify-between">
-          <div>
-            <span className="text-3xl font-bold text-primary">${hotel.price}</span>
-            <span className="text-muted-foreground text-sm">/night</span>
+          <div className="text-sm text-muted-foreground">
+            {hotel.address}
           </div>
-          <Link to={`/hotel/${hotel.id}`}>
+          <Link to={`/hotel/${hotel._id}`}>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              View Details
+              View Rooms
             </Button>
           </Link>
         </div>

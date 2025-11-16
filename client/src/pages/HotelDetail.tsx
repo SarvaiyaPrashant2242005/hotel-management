@@ -1,200 +1,291 @@
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaStar, FaMapMarkerAlt, FaWifi, FaSwimmingPool, FaSpa, FaUtensils, FaArrowLeft } from "react-icons/fa";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { hotels } from "@/data/hotels";
 import { Button } from "@/components/ui/button";
 
-const amenityIcons: Record<string, any> = {
-  "WiFi": FaWifi,
-  "Pool": FaSwimmingPool,
-  "Spa": FaSpa,
-  "Restaurant": FaUtensils,
+const baseUrl = "https://hotel-management-plc3.onrender.com";
+
+type PublicHotel = {
+  _id: string;
+  name: string;
+  description: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  contactNumber: string;
+  images?: string[];
+};
+
+type RoomStatus = "available" | "occupied" | "maintenance";
+
+type Room = {
+  _id: string;
+  roomNumber: string;
+  type: string;
+  price: number;
+  capacity: number;
+  isAvailable: boolean;
+  title?: string;
+  sizeSqft?: number;
+  view?: string;
+  bedType?: string;
+  bathrooms?: number;
+  amenities?: string[];
+  mealPlan?: string;
+  taxesAndFees?: number;
+  strikePrice?: number;
+  dealText?: string;
 };
 
 const HotelDetail = () => {
-  const { id } = useParams();
-  const hotel = hotels.find((h) => h.id === Number(id));
+  const { id } = useParams<{ id: string }>();
 
-  if (!hotel) {
+  const [hotel, setHotel] = useState<PublicHotel | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [hotelRes, roomsRes] = await Promise.all([
+          fetch(`${baseUrl}/api/hotels/${id}`),
+          fetch(`${baseUrl}/api/rooms/hotel/${id}`),
+        ]);
+
+        if (!hotelRes.ok) throw new Error("Failed to load hotel");
+        if (!roomsRes.ok) throw new Error("Failed to load rooms");
+
+        const hotelData = await hotelRes.json();
+        const roomsData = await roomsRes.json();
+
+setHotel(hotelData as PublicHotel);
+
+// API returns: { count: number, rooms: Room[] }
+const extractedRooms =
+  Array.isArray(roomsData)
+    ? roomsData
+    : Array.isArray(roomsData.rooms)
+    ? roomsData.rooms
+    : [];
+
+setRooms(extractedRooms);
+      } catch (err: any) {
+        setError(err.message || "Error loading hotel or rooms");
+        setHotel(null);
+        setRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id]);
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Hotel Not Found</h1>
-          <Link to="/hotels">
-            <Button>Back to Hotels</Button>
-          </Link>
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">Loading hotel and rooms...</p>
         </div>
+        <Footer />
       </div>
     );
   }
+
+  if (error || !hotel) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-3">Hotel Not Found</h1>
+            {error && (
+              <p className="text-red-500 mb-3 text-sm">{error}</p>
+            )}
+            <Link to="/hotels">
+              <Button>Back to Hotels</Button>
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const image =
+    hotel.images && hotel.images[0]
+      ? hotel.images[0]
+      : "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop";
 
   return (
     <div className="min-h-screen">
       <Navbar />
 
-      {/* Hero Banner */}
-      <section className="relative h-[60vh] mt-16">
+      {/* Hero Section */}
+      <section className="relative h-[40vh] mt-16">
         <img
-          src={hotel.image}
+          src={image}
           alt={hotel.name}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        
-        <div className="absolute bottom-0 left-0 right-0 p-8">
-          <div className="container mx-auto">
+        <div className="absolute inset-0 flex items-end">
+          <div className="container mx-auto px-4 pb-8">
             <Link to="/hotels">
               <Button variant="ghost" className="text-white hover:text-white/80 mb-4">
-                <FaArrowLeft className="mr-2" />
                 Back to Hotels
               </Button>
             </Link>
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-5xl md:text-6xl font-bold text-white mb-4"
+              className="text-4xl md:text-5xl font-bold text-white mb-2"
             >
               {hotel.name}
             </motion.h1>
-            <motion.div
+            <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center gap-4 text-white"
+              className="text-white/90 text-lg"
             >
-              <div className="flex items-center gap-2">
-                <FaMapMarkerAlt />
-                <span className="text-lg">{hotel.location}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-secondary px-4 py-2 rounded-full">
-                <FaStar />
-                <span className="font-bold">{hotel.rating}</span>
-              </div>
-            </motion.div>
+              {hotel.city}, {hotel.state}, {hotel.country}
+            </motion.p>
           </div>
         </div>
       </section>
 
-      {/* Content */}
+      {/* Hotel info + rooms */}
       <section className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description */}
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-8">
+          {/* Rooms list */}
+          <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-card rounded-2xl p-8 shadow-soft"
+              className="mb-4"
             >
-              <h2 className="text-3xl font-bold mb-4">About This Hotel</h2>
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                {hotel.description}
+              <h2 className="text-3xl font-bold mb-2">Available Rooms</h2>
+              <p className="text-muted-foreground">
+                Choose a room type that suits your stay.
               </p>
             </motion.div>
 
-            {/* Amenities */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="bg-card rounded-2xl p-8 shadow-soft"
-            >
-              <h2 className="text-3xl font-bold mb-6">Amenities</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {hotel.amenities.map((amenity, index) => {
-                  const Icon = amenityIcons[amenity] || FaWifi;
-                  return (
-                    <motion.div
-                      key={amenity}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.05 }}
-                      className="flex items-center gap-3 p-4 bg-muted/50 rounded-xl hover:bg-primary/10 transition-colors"
-                    >
-                      <Icon className="text-primary text-xl" />
-                      <span className="font-medium">{amenity}</span>
-                    </motion.div>
-                  );
-                })}
+            {rooms.length === 0 && (
+              <div className="text-muted-foreground text-center py-8">
+                No rooms available for this hotel yet.
               </div>
-            </motion.div>
+            )}
 
-            {/* Room Types */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="bg-card rounded-2xl p-8 shadow-soft"
-            >
-              <h2 className="text-3xl font-bold mb-6">Available Room Types</h2>
-              <div className="space-y-4">
-                {hotel.roomTypes.map((room, index) => (
-                  <motion.div
-                    key={room}
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-4 bg-muted/50 rounded-xl border-l-4 border-primary hover:bg-primary/10 transition-colors"
-                  >
-                    <span className="font-medium text-lg">{room}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+            {rooms.map((r) => {
+              const status: RoomStatus = r.isAvailable
+                ? "available"
+                : "occupied";
+
+              return (
+                <motion.div
+                  key={r._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="bg-card rounded-xl shadow-soft p-6 border"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        ROOM TYPE
+                      </p>
+                      <p className="font-semibold mt-1 text-lg">
+                        {r.title || r.type}
+                      </p>
+                      {r.mealPlan && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {r.mealPlan}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Room {r.roomNumber} • Capacity: {r.capacity} guest
+                        {r.capacity > 1 ? "s" : ""}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs mt-2 text-muted-foreground">
+                        {r.sizeSqft && <span>{r.sizeSqft} sq.ft</span>}
+                        {r.view && <span>{r.view}</span>}
+                        {r.bedType && <span>{r.bedType}</span>}
+                        {typeof r.bathrooms === "number" && (
+                          <span>{r.bathrooms} bathroom(s)</span>
+                        )}
+                      </div>
+                      {r.amenities && r.amenities.length > 0 && (
+                        <ul className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1 text-xs list-disc list-inside text-muted-foreground">
+                          {r.amenities.map((a, i) => (
+                            <li key={i}>{a}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-end gap-2">
+                      {typeof r.strikePrice === "number" && (
+                        <p className="text-xs line-through text-muted-foreground">
+                          ₹{r.strikePrice}
+                        </p>
+                      )}
+                      <p className="text-2xl font-bold">
+                        ₹{r.price}
+                      </p>
+                      {typeof r.taxesAndFees === "number" && (
+                        <p className="text-xs text-muted-foreground">
+                          + ₹{r.taxesAndFees} taxes &amp; fees per night
+                        </p>
+                      )}
+                      {r.dealText && (
+                        <p className="text-xs text-green-700 font-medium self-start bg-green-50 px-2 py-1 rounded">
+                          {r.dealText}
+                        </p>
+                      )}
+                      <Button className="mt-1">Book Now</Button>
+                      <p className="text-xs text-muted-foreground">
+                        Status:{" "}
+                        <span className="capitalize">{status}</span>
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
 
-          {/* Booking Card */}
-          <div className="lg:col-span-1">
+          {/* Hotel info sidebar */}
+          <div className="space-y-4">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-card rounded-2xl p-8 shadow-hover sticky top-24"
+              className="bg-card rounded-xl shadow-soft p-6"
             >
-              <div className="text-center mb-6">
-                <div className="text-5xl font-bold text-primary mb-2">
-                  ${hotel.price}
-                </div>
-                <div className="text-muted-foreground">per night</div>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Check-in</label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Check-out</label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Guests</label>
-                  <input
-                    type="number"
-                    min="1"
-                    defaultValue="2"
-                    className="w-full px-4 py-3 rounded-lg border border-border bg-background"
-                  />
-                </div>
-              </div>
-
-              <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
-                Book Now
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                Free cancellation up to 24 hours before check-in
+              <h3 className="text-xl font-semibold mb-2">Hotel Info</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                {hotel.description}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium">Address: </span>
+                {hotel.address}, {hotel.city}, {hotel.state},{" "}
+                {hotel.country}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                <span className="font-medium">Contact: </span>
+                {hotel.contactNumber}
               </p>
             </motion.div>
           </div>

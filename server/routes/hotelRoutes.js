@@ -19,3 +19,4 @@ router.put("/:id", verifyToken, isAdmin, hotelController.updateHotel);
 router.delete("/:id", verifyToken, isAdmin, hotelController.deleteHotel);
 
 module.exports = router;
+    
