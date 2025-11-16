@@ -22,6 +22,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 type RoomStatus = "available" | "occupied" | "maintenance";
 
 type Hotel = {
+  id: string;
   _id: string;
   name: string;
   city: string;
