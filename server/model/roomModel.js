@@ -33,6 +33,37 @@ const roomSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    title: {
+      type: String,
+    },
+    sizeSqft: {
+      type: Number,
+    },
+    view: {
+      type: String,
+    },
+    bedType: {
+      type: String,
+    },
+    bathrooms: {
+      type: Number,
+    },
+    mealPlan: {
+      type: String,
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
+    dealText: {
+      type: String,
+    },
+    taxesAndFees: {
+      type: Number,
+    },
+    strikePrice: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );
