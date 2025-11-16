@@ -10,11 +10,11 @@ router.post("/", verifyToken, isAdmin, roomController.createRoom);
 // 📋 Get all rooms
 router.get("/", roomController.getAllRooms);
 
-// 🔍 Get single room by ID
-router.get("/:id", roomController.getRoomById);
-
 // 🏠 Get rooms by hotel ID
 router.get("/hotel/:hotelId", roomController.getRoomsByHotelId);
+
+// 🔍 Get single room by ID
+router.get("/:id", roomController.getRoomById);
 
 // ✏️ Update room (Admin only)
 router.put("/:id", verifyToken, isAdmin, roomController.updateRoom);
