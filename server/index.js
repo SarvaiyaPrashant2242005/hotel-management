@@ -1,10 +1,14 @@
 const express = require("express");
 const dotenv = require("dotenv");
+dotenv.config(); // Load environment variables
+
 const cors = require("cors"); // 🧩 Import CORS
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const hotelRoutes = require("./routes/hotelRoutes");
 const roomRoutes = require("./routes/roomRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 dotenv.config(); // Load environment variables
 
@@ -29,6 +33,9 @@ connectDB();
 app.use("/api/users", userRoutes);
 app.use("/api/hotels", hotelRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
+
 
 // 🌍 Default route
 app.get("/", (req, res) => {
