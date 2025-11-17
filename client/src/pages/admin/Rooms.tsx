@@ -487,14 +487,18 @@ export default function RoomsPage() {
                     {r.images && r.images.length > 0 && (
                       <div className="mb-2">
                         <div className="flex gap-2 overflow-x-auto">
-                          {r.images.map((src, idx) => (
+                          {r.images.map((src, idx) => {
+                            const url = src.startsWith("http")
+                              ? src
+                              : `${baseUrl}${src}`;
+                            return (
                             <img
                               key={idx}
-                              src={src}
+                              src={url}
                               alt={`Room image ${idx + 1}`}
                               className="h-24 w-32 object-cover rounded border"
                             />
-                          ))}
+                          )})}
                         </div>
                       </div>
                     )}

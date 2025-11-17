@@ -45,6 +45,7 @@ type Room = {
   taxesAndFees?: number;
   strikePrice?: number;
   dealText?: string;
+  images?: string[];
 };
 
 const HotelDetail = () => {
@@ -378,7 +379,26 @@ const HotelDetail = () => {
                   className="bg-card rounded-xl shadow-soft p-6 border"
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
+                    <div className="space-y-2">
+                      {r.images && r.images.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex gap-2 overflow-x-auto">
+                            {r.images.map((src, idx) => {
+                              const url = src.startsWith("http")
+                                ? src
+                                : `${baseUrl}${src}`;
+                              return (
+                                <img
+                                  key={idx}
+                                  src={url}
+                                  alt={`Room image ${idx + 1}`}
+                                  className="h-24 w-32 object-cover rounded border"
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         ROOM TYPE
                       </p>
