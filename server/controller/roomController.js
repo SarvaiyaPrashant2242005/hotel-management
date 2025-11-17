@@ -5,7 +5,45 @@ const roomController = {
   // 🏠 Create room for a hotel
   createRoom: async (req, res) => {
     try {
-      const { hotel, roomNumber, type, price, capacity, amenities } = req.body;
+      const {
+        hotel,
+        roomNumber,
+        type,
+        price,
+        capacity,
+        amenities,
+        title,
+        sizeSqft,
+        view,
+        bedType,
+        bathrooms,
+        mealPlan,
+        taxesAndFees,
+        strikePrice,
+        dealText,
+      } = req.body;
+
+      let parsedAmenities = amenities;
+      if (typeof parsedAmenities === "string") {
+        try {
+          const json = JSON.parse(parsedAmenities);
+          parsedAmenities = Array.isArray(json)
+            ? json
+            : String(parsedAmenities)
+                .split(",")
+                .map((a) => a.trim())
+                .filter(Boolean);
+        } catch (e) {
+          parsedAmenities = String(parsedAmenities)
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean);
+        }
+      }
+
+      const images = (req.files || []).map(
+        (file) => `/uploads/rooms/${file.filename}`
+      );
 
       // Check if hotel exists
       const existingHotel = await Hotel.findById(hotel);
@@ -26,6 +64,16 @@ const roomController = {
         price,
         capacity,
         amenities,
+        title,
+        sizeSqft,
+        view,
+        bedType,
+        bathrooms,
+        mealPlan,
+        images,
+        taxesAndFees,
+        strikePrice,
+        dealText,
       });
 
       res.status(201).json({

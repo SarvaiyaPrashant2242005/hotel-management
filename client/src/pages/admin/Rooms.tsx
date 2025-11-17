@@ -48,6 +48,7 @@ type ApiRoom = {
   taxesAndFees?: number;
   strikePrice?: number;
   dealText?: string;
+  images?: string[];
 };
 
 type RoomItem = {
@@ -68,6 +69,7 @@ type RoomItem = {
   taxesAndFees?: number;
   strikePrice?: number;
   dealText?: string;
+  images?: string[];
 };
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
@@ -144,6 +146,8 @@ export default function RoomsPage() {
     mealPlan: "Breakfast Included",
   });
 
+  const [images, setImages] = useState<File[]>([]);
+
   const defaultHotelId = hotels[0]?._id || "";
 
   const rows: RoomItem[] = useMemo(() => {
@@ -185,6 +189,7 @@ export default function RoomsPage() {
           taxesAndFees: r.taxesAndFees,
           strikePrice: r.strikePrice,
           dealText: r.dealText,
+          images: r.images,
         };
       });
   }, [roomsQuery.data, hotels]);
@@ -204,34 +209,38 @@ export default function RoomsPage() {
         throw new Error("Missing required fields");
       }
 
-      const payload: any = {
-        hotel: hId,
-        roomNumber: form.roomNumber,
-        type: form.type,
-        price: Number(form.price || 0),
-        capacity: Number(form.capacity),
-        isAvailable: form.status === "available",
-        amenities: form.amenities
-          ? form.amenities
-              .split(",")
-              .map((a) => a.trim())
-              .filter(Boolean)
-          : [],
-        title: form.title || undefined,
-        sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : undefined,
-        view: form.view || undefined,
-        bedType: form.bedType || undefined,
-        bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-        mealPlan: form.mealPlan || undefined,
-      };
+      const amenitiesArray = form.amenities
+        ? form.amenities
+            .split(",")
+            .map((a) => a.trim())
+            .filter(Boolean)
+        : [];
+
+      const formData = new FormData();
+      formData.append("hotel", hId);
+      formData.append("roomNumber", form.roomNumber);
+      formData.append("type", form.type);
+      formData.append("price", String(form.price || 0));
+      formData.append("capacity", String(form.capacity));
+      formData.append("isAvailable", String(form.status === "available"));
+      formData.append("amenities", JSON.stringify(amenitiesArray));
+      if (form.title) formData.append("title", form.title);
+      if (form.sizeSqft) formData.append("sizeSqft", String(form.sizeSqft));
+      if (form.view) formData.append("view", form.view);
+      if (form.bedType) formData.append("bedType", form.bedType);
+      if (form.bathrooms) formData.append("bathrooms", String(form.bathrooms));
+      if (form.mealPlan) formData.append("mealPlan", form.mealPlan);
+
+      images.forEach((file) => {
+        formData.append("images", file);
+      });
 
       const res = await fetch(`${baseUrl}/api/rooms`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       if (!res.ok) {
@@ -258,6 +267,7 @@ export default function RoomsPage() {
         amenities: "",
         mealPlan: "Breakfast Included",
       });
+      setImages([]);
     },
   });
 
@@ -350,6 +360,14 @@ export default function RoomsPage() {
                 <SelectItem value="maintenance">Maintenance</SelectItem>
               </SelectContent>
             </Select>
+            <Input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) =>
+                setImages(e.target.files ? Array.from(e.target.files) : [])
+              }
+            />
             <Button onClick={addRoom} disabled={createRoomMutation.isPending}>
               {createRoomMutation.isPending ? "Adding..." : "Add Room"}
             </Button>
@@ -466,6 +484,20 @@ export default function RoomsPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-4">
                   <div className="space-y-1 text-sm">
+                    {r.images && r.images.length > 0 && (
+                      <div className="mb-2">
+                        <div className="flex gap-2 overflow-x-auto">
+                          {r.images.map((src, idx) => (
+                            <img
+                              key={idx}
+                              src={src}
+                              alt={`Room image ${idx + 1}`}
+                              className="h-24 w-32 object-cover rounded border"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <p className="font-medium">{hotels.find(h => h.id === r.hotelId)?.name}</p>
                     <p className="text-xs text-muted-foreground">Room {r.roomNumber} • {r.type}</p>
                     <div className="flex flex-wrap gap-2 text-xs mt-2">

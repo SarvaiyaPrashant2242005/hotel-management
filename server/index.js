@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const dotenv = require("dotenv");
 dotenv.config(); // Load environment variables
 
@@ -16,6 +17,8 @@ const app = express();
 
 // 🧩 Middleware
 app.use(express.json()); // Parse incoming JSON requests
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ✅ Enable CORS for your frontend origin
 app.use(
