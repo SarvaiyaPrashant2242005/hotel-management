@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import RoomList from "@/components/RoomList";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -365,107 +366,20 @@ const HotelDetail = () => {
               </div>
             )}
 
-            {rooms.map((r) => {
-              const status: RoomStatus = r.isAvailable
-                ? "available"
-                : "occupied";
-
-              return (
-                <motion.div
-                  key={r._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="bg-card rounded-xl shadow-soft p-6 border"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="space-y-2">
-                      {r.images && r.images.length > 0 && (
-                        <div className="mb-2">
-                          <div className="flex gap-2 overflow-x-auto">
-                            {r.images.map((src, idx) => {
-                              const url = src.startsWith("http")
-                                ? src
-                                : `${baseUrl}${src}`;
-                              return (
-                                <img
-                                  key={idx}
-                                  src={url}
-                                  alt={`Room image ${idx + 1}`}
-                                  className="h-24 w-32 object-cover rounded border"
-                                />
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        ROOM TYPE
-                      </p>
-                      <p className="font-semibold mt-1 text-lg">
-                        {r.title || r.type}
-                      </p>
-                      {r.mealPlan && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {r.mealPlan}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Room {r.roomNumber} • Capacity: {r.capacity} guest
-                        {r.capacity > 1 ? "s" : ""}
-                      </p>
-                      <div className="flex flex-wrap gap-2 text-xs mt-2 text-muted-foreground">
-                        {r.sizeSqft && <span>{r.sizeSqft} sq.ft</span>}
-                        {r.view && <span>{r.view}</span>}
-                        {r.bedType && <span>{r.bedType}</span>}
-                        {typeof r.bathrooms === "number" && (
-                          <span>{r.bathrooms} bathroom(s)</span>
-                        )}
-                      </div>
-                      {r.amenities && r.amenities.length > 0 && (
-                        <ul className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1 text-xs list-disc list-inside text-muted-foreground">
-                          {r.amenities.map((a, i) => (
-                            <li key={i}>{a}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2">
-                      {typeof r.strikePrice === "number" && (
-                        <p className="text-xs line-through text-muted-foreground">
-                          ₹{r.strikePrice}
-                        </p>
-                      )}
-                      <p className="text-2xl font-bold">
-                        ₹{r.price}
-                      </p>
-                      {typeof r.taxesAndFees === "number" && (
-                        <p className="text-xs text-muted-foreground">
-                          + ₹{r.taxesAndFees} taxes &amp; fees per night
-                        </p>
-                      )}
-                      {r.dealText && (
-                        <p className="text-xs text-green-700 font-medium self-start bg-green-50 px-2 py-1 rounded">
-                          {r.dealText}
-                        </p>
-                      )}
-                      <Button
-                        className="mt-1"
-                        disabled={!r.isAvailable || activeRoomId === r._id}
-                        onClick={() => handleBookRoom(r)}
-                      >
-                        {activeRoomId === r._id ? "Processing..." : "Book Now"}
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        Status:{" "}
-                        <span className="capitalize">{status}</span>
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {rooms.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <RoomList
+                  rooms={rooms}
+                  onBook={handleBookRoom}
+                  activeRoomId={activeRoomId}
+                  baseUrl={baseUrl}
+                />
+              </motion.div>
+            )}
           </div>
 
           {/* Hotel info + booking inputs */}

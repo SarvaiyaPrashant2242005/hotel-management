@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Trash2, Phone, MapPin } from "lucide-react";
 
@@ -24,6 +25,7 @@ export default function HotelsPage() {
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -160,6 +162,7 @@ export default function HotelsPage() {
       createMutation.mutate(form as any);
     }
     resetForm();
+    setOpen(false);
   };
 
   const startEdit = (h: Hotel) => {
@@ -174,53 +177,65 @@ export default function HotelsPage() {
       contactNumber: h.contactNumber,
       imageUrl: (h.images && h.images[0]) || "",
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setOpen(true);
   };
 
   return (
     <div className="space-y-6 p-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Manage Hotels</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl">Manage Hotels</CardTitle>
+            <Button onClick={() => { setEditingId(null); resetForm(); setOpen(true); }}>
+              Add Hotel
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <Input placeholder="Hotel Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-            <Input placeholder="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
-            <Input placeholder="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-            <Input placeholder="Contact Number" value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
-            <Input placeholder="Image URL" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
-          </div>
-          <Input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          <textarea 
-            placeholder="Description" 
-            value={form.description} 
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full min-h-20 px-3 py-2 text-sm rounded-md border border-input bg-background"
-          />
-          <div className="flex gap-2">
-            <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-              {editingId ? "Update Hotel" : "Add Hotel"}
-            </Button>
-            {editingId && (
-              <Button variant="secondary" onClick={() => { setEditingId(null); resetForm(); }}>Cancel</Button>
-            )}
+          <div className="flex items-center gap-3">
+            <Input 
+              placeholder="Search by name, city, state, or country..." 
+              value={query} 
+              onChange={(e) => setQuery(e.target.value)}
+              className="max-w-md"
+            />
+            <span className="text-sm text-muted-foreground">
+              {list.length} {list.length === 1 ? 'hotel' : 'hotels'} found
+            </span>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center gap-3">
-        <Input 
-          placeholder="Search by name, city, state, or country..." 
-          value={query} 
-          onChange={(e) => setQuery(e.target.value)}
-          className="max-w-md"
-        />
-        <span className="text-sm text-muted-foreground">
-          {list.length} {list.length === 1 ? 'hotel' : 'hotels'} found
-        </span>
-      </div>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit Hotel" : "Add Hotel"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Input placeholder="Hotel Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+              <Input placeholder="State" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+              <Input placeholder="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+              <Input placeholder="Contact Number" value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
+              <Input placeholder="Image URL" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
+            </div>
+            <Input placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            <textarea 
+              placeholder="Description" 
+              value={form.description} 
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full min-h-24 px-3 py-2 text-sm rounded-md border border-input bg-background"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" onClick={() => { setOpen(false); setEditingId(null); }}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+                {editingId ? "Update Hotel" : "Add Hotel"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {hotelsQuery.isLoading && (
         <div className="text-center py-12">
