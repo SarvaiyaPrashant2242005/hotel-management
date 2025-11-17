@@ -8,7 +8,6 @@ const navItems = [
   { to: "/admin/rooms", label: "Rooms", icon: BedSingle },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck2 },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
-  { to: "/admin/users", label: "Users", icon: Users },
 ];
 
 export default function Sidebar() {

@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Loader from "@/components/Loader";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -136,9 +137,9 @@ export default function PaymentsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {loading && (
-            <p className="text-sm text-muted-foreground">
-              Loading payments...
-            </p>
+            <div className="py-10 flex items-center justify-center">
+              <Loader label="Loading payments..." />
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">

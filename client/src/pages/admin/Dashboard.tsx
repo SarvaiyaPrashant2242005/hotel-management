@@ -14,6 +14,7 @@ import {
   Cell,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Loader from "@/components/Loader";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -116,9 +117,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {loading && (
-        <p className="text-muted-foreground text-sm">
-          Loading dashboard data...
-        </p>
+        <div className="py-10 flex items-center justify-center">
+          <Loader label="Loading dashboard data..." />
+        </div>
       )}
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
