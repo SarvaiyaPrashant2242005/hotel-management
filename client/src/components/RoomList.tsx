@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -35,6 +36,19 @@ interface RoomListProps {
 }
 
 const RoomList = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomListProps) => {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const apiMap = useRef<Record<string, any>>({});
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      Object.entries(apiMap.current).forEach(([roomId, api]) => {
+        if (hoveredId && hoveredId === roomId) return; // pause on hover that room
+        api?.scrollNext();
+      });
+    }, 4000);
+    return () => clearInterval(id);
+  }, [hoveredId]);
+
   return (
     <div className="space-y-4">
       {rooms.map((r) => {
@@ -51,8 +65,18 @@ const RoomList = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomListProps) 
           <div key={r._id} className="rounded-2xl border bg-card overflow-hidden shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-[380px,1fr] gap-0">
               {/* Left: image carousel */}
-              <div className="relative">
-                <Carousel className="w-full" opts={{ loop: true }}>
+              <div
+                className="relative"
+                onMouseEnter={() => setHoveredId(r._id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
+                <Carousel
+                  className="w-full"
+                  opts={{ loop: true }}
+                  setApi={(api) => {
+                    if (api) apiMap.current[r._id] = api;
+                  }}
+                >
                   <CarouselContent>
                     {normalized.map((src, i) => (
                       <CarouselItem key={i}>
