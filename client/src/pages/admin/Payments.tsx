@@ -71,12 +71,17 @@ export default function PaymentsPage() {
         const res = await fetch(`${baseUrl}/api/bookings`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (!res.ok) {
           setRows([]);
         } else {
-          const data: Booking[] = Array.isArray(await res.json())
-            ? await res.json()
+          const json = await res.json();
+          const data: Booking[] = Array.isArray(json)
+            ? json
+            : Array.isArray(json?.bookings)
+            ? json.bookings
             : [];
+
           const mapped: PaymentRow[] = data.map((b) => ({
             id: b._id,
             userEmail: b.user?.email || "",
