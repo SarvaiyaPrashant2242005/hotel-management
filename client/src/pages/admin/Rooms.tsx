@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -147,6 +148,8 @@ export default function RoomsPage() {
   });
 
   const [images, setImages] = useState<File[]>([]);
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const defaultHotelId = hotels[0]?._id || "";
 
@@ -171,6 +174,31 @@ export default function RoomsPage() {
 
         const status: RoomStatus = r.isAvailable ? "available" : "occupied";
 
+        // sanitize amenities from API (can arrive as string like "[]" or JSON string)
+        let amenities: string[] | undefined;
+        const raw = (r as any).amenities as unknown;
+        if (Array.isArray(raw)) {
+          amenities = raw.filter((a) => typeof a === "string" && a.trim() && a.trim() !== "[]");
+        } else if (typeof raw === "string") {
+          const trimmed = raw.trim();
+          if (trimmed === "[]" || trimmed === "") {
+            amenities = [];
+          } else {
+            try {
+              const parsed = JSON.parse(trimmed);
+              amenities = Array.isArray(parsed)
+                ? parsed.filter((a) => typeof a === "string" && a.trim())
+                : trimmed.includes(",")
+                ? trimmed.split(",").map((s) => s.trim()).filter(Boolean)
+                : [trimmed];
+            } catch {
+              amenities = trimmed.includes(",")
+                ? trimmed.split(",").map((s) => s.trim()).filter(Boolean)
+                : [trimmed];
+            }
+          }
+        }
+
         return {
           id: r._id,
           hotelId: hId,
@@ -184,7 +212,7 @@ export default function RoomsPage() {
           view: r.view,
           bedType: r.bedType,
           bathrooms: r.bathrooms,
-          amenities: r.amenities,
+          amenities,
           mealPlan: r.mealPlan,
           taxesAndFees: r.taxesAndFees,
           strikePrice: r.strikePrice,
@@ -275,11 +303,70 @@ export default function RoomsPage() {
     createRoomMutation.mutate();
   };
 
+  const updateRoomMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
+      const res = await fetch(`${baseUrl}/api/rooms/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to update room");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-rooms"] });
+      setEditingId(null);
+      setOpen(false);
+    },
+  });
+
+  const deleteRoomMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`${baseUrl}/api/rooms/${id}`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to delete room");
+      }
+      return true;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-rooms"] }),
+  });
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Rooms</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Rooms</CardTitle>
+            <Button onClick={() => { setEditingId(null); setForm({
+              hotelId: defaultHotelId,
+              roomNumber: "",
+              type: "single",
+              price: "",
+              capacity: "",
+              status: "available",
+              title: "",
+              sizeSqft: "",
+              view: "",
+              bedType: "",
+              bathrooms: "",
+              amenities: "",
+              mealPlan: "Breakfast Included",
+            }); setImages([]); setOpen(true); }}>
+              Add Room
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -312,154 +399,9 @@ export default function RoomsPage() {
             </Select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-            <Select
-              value={form.hotelId || defaultHotelId}
-              onValueChange={(v) => setForm({ ...form, hotelId: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Hotel" />
-              </SelectTrigger>
-              <SelectContent>
-                {hotels.map((h) => (
-                  <SelectItem key={h._id} value={h._id}>
-                    {h.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input placeholder="Room number" value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} />
-            <Select
-              value={form.type}
-              onValueChange={(v) => setForm({ ...form, type: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="single">Single</SelectItem>
-                <SelectItem value="double">Double</SelectItem>
-                <SelectItem value="suite">Suite</SelectItem>
-                <SelectItem value="deluxe">Deluxe</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-            <Input
-              type="number"
-              placeholder="Capacity"
-              value={form.capacity}
-              onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-            />
-            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as RoomStatus })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="occupied">Occupied</SelectItem>
-                <SelectItem value="maintenance">Maintenance</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) =>
-                setImages(e.target.files ? Array.from(e.target.files) : [])
-              }
-            />
-            <Button onClick={addRoom} disabled={createRoomMutation.isPending}>
-              {createRoomMutation.isPending ? "Adding..." : "Add Room"}
-            </Button>
-          </div>
+          {/* Add/Edit form moved into modal */}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Input
-              placeholder="Title (e.g. Premium Pool View With Balcony)"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            <Input
-              type="number"
-              placeholder="Size (sq.ft)"
-              value={form.sizeSqft}
-              onChange={(e) => setForm({ ...form, sizeSqft: e.target.value })}
-            />
-            <Input
-              placeholder="View (e.g. Swimming Pool View)"
-              value={form.view}
-              onChange={(e) => setForm({ ...form, view: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Input
-              placeholder="Bed type (e.g. 1 King Bed)"
-              value={form.bedType}
-              onChange={(e) => setForm({ ...form, bedType: e.target.value })}
-            />
-            <Input
-              type="number"
-              placeholder="Bathrooms"
-              value={form.bathrooms}
-              onChange={(e) => setForm({ ...form, bathrooms: e.target.value })}
-            />
-            <Input
-              placeholder="Amenities (comma separated)"
-              value={form.amenities}
-              onChange={(e) => setForm({ ...form, amenities: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Select
-              value={form.mealPlan}
-              onValueChange={(v) => setForm({ ...form, mealPlan: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Meal Plan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Breakfast Included">Breakfast Included</SelectItem>
-                <SelectItem value="Breakfast & Lunch/Dinner Included">
-                  Breakfast & Lunch/Dinner Included
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hotel</TableHead>
-                  <TableHead>Room</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Price</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.map(r => {
-                  const h = hotels.find(h => h.id === r.hotelId);
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell>{h?.name}</TableCell>
-                      <TableCell className="font-medium">{r.roomNumber}</TableCell>
-                      <TableCell>{r.type}</TableCell>
-                      <TableCell className="capitalize">{r.status}</TableCell>
-                      <TableCell>₹{r.price}</TableCell>
-                    </TableRow>
-                  );
-                })}
-                {list.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">No rooms found</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {/* Table view removed as requested */}
 
           <div className="space-y-3">
             {list.map(r => (
@@ -519,15 +461,31 @@ export default function RoomsPage() {
                     )}
                   </div>
                   <div className="flex flex-col items-end justify-between gap-2">
-                    {r.dealText && (
-                      <p className="text-xs text-green-700 font-medium self-start bg-green-50 px-2 py-1 rounded">
-                        {r.dealText}
-                      </p>
-                    )}
-                    <Button className="mt-2">Book Now</Button>
-                    <p className="text-xs text-muted-foreground">
-                      Status: <span className="capitalize">{r.status}</span>
-                    </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setEditingId(r.id);
+                        setForm({
+                          hotelId: r.hotelId,
+                          roomNumber: r.roomNumber,
+                          type: r.type,
+                          price: String(r.price),
+                          capacity: "", // unknown in rows
+                          status: r.status as any,
+                          title: r.title || "",
+                          sizeSqft: String(r.sizeSqft || ""),
+                          view: r.view || "",
+                          bedType: r.bedType || "",
+                          bathrooms: String(r.bathrooms || ""),
+                          amenities: r.amenities ? r.amenities.join(", ") : "",
+                          mealPlan: r.mealPlan || "Breakfast Included",
+                        });
+                        setOpen(true);
+                      }}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => {
+                        if (confirm(`Delete room ${r.roomNumber}?`)) deleteRoomMutation.mutate(r.id);
+                      }}>Delete</Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Status: <span className="capitalize">{r.status}</span></p>
                   </div>
                 </CardContent>
               </Card>
@@ -535,6 +493,106 @@ export default function RoomsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Modal */}
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditingId(null);} }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit Room" : "Add Room"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+              <Select value={form.hotelId || defaultHotelId} onValueChange={(v) => setForm({ ...form, hotelId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Hotel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hotels.map((h) => (
+                    <SelectItem key={h._id} value={h._id}>{h.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input placeholder="Room number" value={form.roomNumber} onChange={(e) => setForm({ ...form, roomNumber: e.target.value })} />
+              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">Single</SelectItem>
+                  <SelectItem value="double">Double</SelectItem>
+                  <SelectItem value="suite">Suite</SelectItem>
+                  <SelectItem value="deluxe">Deluxe</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="number" placeholder="Price" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+              <Input type="number" placeholder="Capacity" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as RoomStatus })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="occupied">Occupied</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                </SelectContent>
+              </Select>
+              {!editingId && (
+                <Input type="file" multiple accept="image/*" onChange={(e) => setImages(e.target.files ? Array.from(e.target.files) : [])} />
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <Input type="number" placeholder="Size (sq.ft)" value={form.sizeSqft} onChange={(e) => setForm({ ...form, sizeSqft: e.target.value })} />
+              <Input placeholder="View" value={form.view} onChange={(e) => setForm({ ...form, view: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Input placeholder="Bed type" value={form.bedType} onChange={(e) => setForm({ ...form, bedType: e.target.value })} />
+              <Input type="number" placeholder="Bathrooms" value={form.bathrooms} onChange={(e) => setForm({ ...form, bathrooms: e.target.value })} />
+              <Input placeholder="Amenities (comma separated)" value={form.amenities} onChange={(e) => setForm({ ...form, amenities: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Select value={form.mealPlan} onValueChange={(v) => setForm({ ...form, mealPlan: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Meal Plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Breakfast Included">Breakfast Included</SelectItem>
+                  <SelectItem value="Breakfast & Lunch/Dinner Included">Breakfast & Lunch/Dinner Included</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setOpen(false); setEditingId(null); }}>Cancel</Button>
+              {editingId ? (
+                <Button onClick={() => {
+                  const amenitiesArray = form.amenities ? form.amenities.split(",").map(a => a.trim()).filter(Boolean) : [];
+                  updateRoomMutation.mutate({ id: editingId, payload: {
+                    hotel: form.hotelId || defaultHotelId,
+                    roomNumber: form.roomNumber,
+                    type: form.type,
+                    price: Number(form.price || 0),
+                    capacity: Number(form.capacity || 0),
+                    isAvailable: form.status === "available",
+                    title: form.title || undefined,
+                    sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : undefined,
+                    view: form.view || undefined,
+                    bedType: form.bedType || undefined,
+                    bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+                    amenities: amenitiesArray,
+                    mealPlan: form.mealPlan,
+                  } });
+                }} disabled={updateRoomMutation.isPending}>Update Room</Button>
+              ) : (
+                <Button onClick={addRoom} disabled={createRoomMutation.isPending}>
+                  {createRoomMutation.isPending ? "Adding..." : "Add Room"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
