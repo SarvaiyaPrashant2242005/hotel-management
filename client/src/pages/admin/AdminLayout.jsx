@@ -1,15 +1,6 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Building2, BedSingle, CreditCard } from "lucide-react";
-
-const navItems = [
-  { to: "/admin", label: "Dashboard", end: true, icon: LayoutDashboard },
-  { to: "/admin/hotels", label: "Hotels", icon: Building2 },
-  { to: "/admin/rooms", label: "Rooms", icon: BedSingle },
-  { to: "/admin/bookings", label: "Bookings", icon: LayoutDashboard },
-  { to: "/admin/payments", label: "Payments", icon: CreditCard },
-];
+import Sidebar from "./Sidebar";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -46,29 +37,8 @@ export default function AdminLayout() {
           </div>
         </header>
         <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[220px,1fr] gap-6">
-          <aside className="md:sticky md:top-4 h-max">
-            <div className="rounded-lg border bg-card p-2">
-              {navItems.map((n) => {
-                const Icon = n.icon;
-                return (
-                  <NavLink
-                    key={n.to}
-                    to={n.to}
-                    end={n.end}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",
-                        isActive ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                      )
-                    }
-                  >
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span>{n.label}</span>
-                  </NavLink>
-                );
-              })}
-            </div>
-          </aside>
+          <Sidebar />
+
           <main>
             <Outlet />
           </main>

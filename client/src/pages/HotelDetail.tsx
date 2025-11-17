@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import RoomList from "@/components/RoomList";
+import Loader from "@/components/Loader";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -273,7 +274,7 @@ const HotelDetail = () => {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading hotel and rooms...</p>
+          <Loader label="Loading hotel and rooms..." />
         </div>
         <Footer />
       </div>
