@@ -9,6 +9,9 @@ router.post("/", verifyToken, bookingController.createBooking);
 // Logged-in user's bookings
 router.get("/me", verifyToken, bookingController.getMyBookings);
 
+// User cancels their own booking
+router.put("/:id/cancel", verifyToken, bookingController.cancelBooking);
+
 // Admin: all bookings
 router.get("/", verifyToken, isAdmin, bookingController.getAllBookings);
 

@@ -11,7 +11,7 @@ const paymentController = {
   // Create Razorpay order for a booking
   createOrder: async (req, res) => {
     try {
-      const { bookingId } = req.body;
+      const { bookingId, amount: customAmount } = req.body;
 
       if (!bookingId) {
         return res.status(400).json({ message: "bookingId is required" });
@@ -26,13 +26,23 @@ const paymentController = {
         return res.status(403).json({ message: "Not authorized for this booking" });
       }
 
-      // amount in paise
-      const amount = Math.round(booking.totalPrice * 100);
+      // Use custom amount if provided, otherwise use total price
+      // Custom amount is used for advance payments (10%)
+      let amount;
+      if (customAmount && typeof customAmount === "number") {
+        amount = Math.round(customAmount * 100); // amount in paise
+      } else {
+        amount = Math.round(booking.totalPrice * 100); // amount in paise
+      }
 
       const options = {
         amount,
         currency: "INR",
         receipt: `booking_${booking._id}`,
+        notes: {
+          bookingId: booking._id.toString(),
+          paymentOption: booking.paymentOption,
+        },
       };
 
       const order = await razorpay.orders.create(options);

@@ -43,6 +43,15 @@ const bookingSchema = new mongoose.Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
+    paymentOption: {
+      type: String,
+      enum: ["pay-now", "pay-at-hotel"],
+      default: "pay-now",
+    },
+    advancePayment: {
+      type: Number,
+      default: 0,
+    },
     razorpayOrderId: {
       type: String,
     },
@@ -51,6 +60,26 @@ const bookingSchema = new mongoose.Schema(
     },
     razorpaySignature: {
       type: String,
+    },
+    razorpayRefundId: {
+      type: String,
+    },
+
+    // cancellation info
+    cancellationReason: {
+      type: String,
+    },
+    cancelledAt: {
+      type: Date,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+    },
+    refundStatus: {
+      type: String,
+      enum: ["none", "initiated", "processed", "failed"],
+      default: "none",
     },
   },
   { timestamps: true }
