@@ -21,6 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import Loader from "@/components/Loader";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
@@ -31,6 +34,9 @@ type Booking = {
   hotel?: { name: string };
   totalPrice: number;
   paymentStatus: "pending" | "paid" | "failed";
+  paymentMethod?: string;
+  paymentOption?: string;
+  advancePayment?: number;
   createdAt: string;
 };
 
@@ -40,7 +46,9 @@ type PaymentRow = {
   hotelName: string;
   amount: number;
   status: "pending" | "paid" | "failed";
-  method: "razorpay";
+  method: string;
+  paymentOption?: string;
+  advancePayment?: number;
   date: string;
 };
 
@@ -55,6 +63,7 @@ export default function PaymentsPage() {
   const [hotel, setHotel] = useState<string>("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -89,7 +98,9 @@ export default function PaymentsPage() {
             hotelName: b.hotel?.name || "Hotel",
             amount: b.totalPrice || 0,
             status: b.paymentStatus,
-            method: "razorpay",
+            method: b.paymentMethod || "razorpay",
+            paymentOption: b.paymentOption,
+            advancePayment: b.advancePayment,
             date: b.createdAt,
           }));
           setRows(mapped);
@@ -145,6 +156,52 @@ export default function PaymentsPage() {
     paid: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
     pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
     failed: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  };
+
+  const downloadCSV = () => {
+    const headers = [
+      "Transaction ID",
+      "Date",
+      "User Email",
+      "Hotel",
+      "Payment Method",
+      "Payment Option",
+      "Amount Paid",
+      "Total Amount",
+      "Status",
+    ];
+
+    const rows = list.map((p) => [
+      p.id,
+      formatDate(p.date),
+      p.userEmail,
+      p.hotelName,
+      p.method,
+      p.paymentOption || "pay-now",
+      p.paymentOption === "pay-at-hotel" ? (p.advancePayment || Math.round(p.amount * 0.1)) : p.amount,
+      p.amount,
+      p.status,
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `payments_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Download Complete",
+      description: `Downloaded ${list.length} payment records as CSV`,
+    });
   };
 
   return (
@@ -208,8 +265,16 @@ export default function PaymentsPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-xl">Transaction History</CardTitle>
-          <p className="text-sm text-muted-foreground">{list.length} transactions found</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">Transaction History</CardTitle>
+              <p className="text-sm text-muted-foreground">{list.length} transactions found</p>
+            </div>
+            <Button onClick={downloadCSV} variant="outline" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Download Report
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading && (
@@ -288,7 +353,11 @@ export default function PaymentsPage() {
                       <TableCell>{p.userEmail}</TableCell>
                       <TableCell>{p.hotelName}</TableCell>
                       <TableCell>
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 uppercase">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold uppercase ${
+                          p.method === "razorpay" 
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                        }`}>
                           {p.method}
                         </span>
                       </TableCell>
@@ -297,7 +366,14 @@ export default function PaymentsPage() {
                           {p.status}
                         </span>
                       </TableCell>
-                      <TableCell className="font-bold">₹{p.amount.toLocaleString()}</TableCell>
+                      <TableCell className="font-bold">
+                        <div>₹{p.amount.toLocaleString()}</div>
+                        {p.paymentOption === "pay-at-hotel" && p.status === "paid" && (
+                          <div className="text-xs text-muted-foreground font-normal">
+                            Paid: ₹{(p.advancePayment || Math.round(p.amount * 0.1)).toLocaleString()} (10%)
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                   {list.length === 0 && !loading && (

@@ -22,6 +22,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Download, CreditCard } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -42,6 +53,9 @@ type Booking = {
   totalPrice: number;
   status: "pending" | "confirmed" | "cancelled";
   paymentStatus: "pending" | "paid" | "failed";
+  paymentMethod?: string;
+  paymentOption?: string;
+  advancePayment?: number;
   createdAt: string;
 };
 
@@ -57,6 +71,13 @@ export default function BookingsPage() {
   >("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
+  const [showOfflineDialog, setShowOfflineDialog] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -126,6 +147,118 @@ export default function BookingsPage() {
     return d.toLocaleDateString();
   };
 
+  const handleMarkOfflinePayment = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setPaymentMethod("cash");
+    setPaymentNotes("");
+    setShowOfflineDialog(true);
+  };
+
+  const handleConfirmOfflinePayment = async () => {
+    if (!selectedBooking) return;
+
+    try {
+      setIsProcessing(true);
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${baseUrl}/api/bookings/${selectedBooking._id}/mark-payment-offline`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          paymentMethod,
+          notes: paymentNotes,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to mark payment");
+      }
+
+      const data = await res.json();
+
+      // Update bookings list
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === selectedBooking._id
+            ? { ...b, paymentStatus: "paid", status: "confirmed", paymentMethod }
+            : b
+        )
+      );
+
+      toast({
+        title: "Payment Marked",
+        description: "Payment has been marked as received successfully.",
+      });
+
+      setShowOfflineDialog(false);
+      setSelectedBooking(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to mark payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const downloadCSV = () => {
+    const headers = [
+      "Booking ID",
+      "Guest Name",
+      "Guest Email",
+      "Hotel",
+      "Room",
+      "Check-in",
+      "Check-out",
+      "Total Amount",
+      "Status",
+      "Payment Status",
+      "Payment Method",
+      "Booking Date",
+    ];
+
+    const rows = filtered.map((b) => [
+      b._id,
+      b.user?.fullName || "",
+      b.user?.email || "",
+      b.hotel?.name || "",
+      b.room ? `#${b.room.roomNumber} ${b.room.type}` : "",
+      formatDate(b.checkIn),
+      formatDate(b.checkOut),
+      b.totalPrice,
+      b.status,
+      b.paymentStatus,
+      b.paymentMethod || "razorpay",
+      formatDate(b.createdAt),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bookings_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Download Complete",
+      description: `Downloaded ${filtered.length} bookings as CSV`,
+    });
+  };
+
   const statusColors = {
     confirmed: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
     pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
@@ -192,6 +325,10 @@ export default function BookingsPage() {
                   <CardTitle className="text-xl">All Bookings</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">{filtered.length} bookings found</p>
                 </div>
+                <Button onClick={downloadCSV} variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Report
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -261,6 +398,7 @@ export default function BookingsPage() {
                         <TableHead className="font-semibold">Status</TableHead>
                         <TableHead className="font-semibold">Payment</TableHead>
                         <TableHead className="font-semibold">Amount</TableHead>
+                        <TableHead className="font-semibold">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -288,16 +426,42 @@ export default function BookingsPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${paymentColors[b.paymentStatus]}`}>
-                              {b.paymentStatus}
-                            </span>
+                            <div className="space-y-1">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${paymentColors[b.paymentStatus]}`}>
+                                {b.paymentStatus}
+                              </span>
+                              {b.paymentMethod && b.paymentMethod !== "razorpay" && (
+                                <div className="text-xs text-muted-foreground">
+                                  via {b.paymentMethod}
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell className="font-semibold">₹{b.totalPrice.toLocaleString()}</TableCell>
+                          <TableCell className="font-semibold">
+                            <div>₹{b.totalPrice.toLocaleString()}</div>
+                            {b.paymentOption === "pay-at-hotel" && b.paymentStatus === "paid" && (
+                              <div className="text-xs text-muted-foreground">
+                                Advance: ₹{(b.advancePayment || Math.round(b.totalPrice * 0.1)).toLocaleString()}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {b.paymentStatus === "pending" && b.status !== "cancelled" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMarkOfflinePayment(b)}
+                              >
+                                <CreditCard className="w-3 h-3 mr-1" />
+                                Mark Paid
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                       {filtered.length === 0 && !loading && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                             No bookings found matching your filters
                           </TableCell>
                         </TableRow>
@@ -310,6 +474,98 @@ export default function BookingsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Offline Payment Dialog */}
+      <Dialog open={showOfflineDialog} onOpenChange={setShowOfflineDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark Payment as Received</DialogTitle>
+            <DialogDescription>
+              Record offline payment for this booking
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-4 py-4">
+              {/* Booking Details */}
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <h4 className="font-semibold text-sm">Booking Details</h4>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Guest:</span>
+                    <span className="font-medium">{selectedBooking.user?.fullName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hotel:</span>
+                    <span>{selectedBooking.hotel?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Room:</span>
+                    <span>
+                      {selectedBooking.room
+                        ? `#${selectedBooking.room.roomNumber} ${selectedBooking.room.type}`
+                        : "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="font-semibold">Amount:</span>
+                    <span className="font-bold text-lg">
+                      ₹{selectedBooking.totalPrice.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger id="payment-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card (POS)</SelectItem>
+                    <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="offline">Other Offline</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="payment-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="payment-notes"
+                  placeholder="Add any notes about this payment..."
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowOfflineDialog(false)}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleConfirmOfflinePayment}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Confirm Payment"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -466,7 +466,14 @@ const HotelDetail = () => {
                     type="date"
                     className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
                     value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      setCheckIn(e.target.value);
+                      // If check-out is before new check-in, reset check-out
+                      if (checkOut && e.target.value >= checkOut) {
+                        setCheckOut("");
+                      }
+                    }}
                   />
                 </div>
                 <div>
@@ -477,8 +484,15 @@ const HotelDetail = () => {
                     type="date"
                     className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
                     value={checkOut}
+                    min={checkIn || new Date().toISOString().split('T')[0]}
+                    disabled={!checkIn}
                     onChange={(e) => setCheckOut(e.target.value)}
                   />
+                  {!checkIn && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Please select check-in date first
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
