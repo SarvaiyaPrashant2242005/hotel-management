@@ -18,4 +18,7 @@ router.get("/", verifyToken, isAdmin, bookingController.getAllBookings);
 // Admin: update booking status
 router.put("/:id/status", verifyToken, isAdmin, bookingController.updateBookingStatus);
 
+// Admin: mark payment as received offline
+router.put("/:id/mark-payment-offline", verifyToken, isAdmin, bookingController.markPaymentOffline);
+
 module.exports = router;

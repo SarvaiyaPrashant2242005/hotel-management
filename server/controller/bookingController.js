@@ -131,6 +131,40 @@ const bookingController = {
     }
   },
 
+  // Admin: mark payment as received offline
+  markPaymentOffline: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { paymentMethod, notes } = req.body;
+
+      const booking = await Booking.findById(id)
+        .populate("hotel", "name")
+        .populate("room", "roomNumber type")
+        .populate("user", "fullName email");
+
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Update payment status
+      booking.paymentStatus = "paid";
+      booking.status = "confirmed";
+      booking.paymentMethod = paymentMethod || "offline";
+      booking.offlinePaymentNotes = notes || "";
+      booking.offlinePaymentDate = new Date();
+
+      await booking.save();
+
+      res.json({
+        message: "Payment marked as received successfully",
+        booking,
+      });
+    } catch (error) {
+      console.error("Error marking payment offline:", error);
+      res.status(500).json({ message: "Failed to mark payment", error: error.message });
+    }
+  },
+
   // User: cancel their own booking
   cancelBooking: async (req, res) => {
     try {

@@ -81,6 +81,19 @@ const bookingSchema = new mongoose.Schema(
       enum: ["none", "initiated", "processed", "failed"],
       default: "none",
     },
+
+    // offline payment info (for admin)
+    paymentMethod: {
+      type: String,
+      enum: ["razorpay", "offline", "cash", "card", "bank-transfer"],
+      default: "razorpay",
+    },
+    offlinePaymentNotes: {
+      type: String,
+    },
+    offlinePaymentDate: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
