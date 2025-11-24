@@ -1,3 +1,4 @@
+import { useState, useRef, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaPhone, FaMapMarkerAlt } from "react-icons/fa";
 import Navbar from "@/components/Navbar";
@@ -5,8 +6,62 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import emailjs from "@emailjs/browser";
 
 const Contact = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { toast } = useToast();
+
+  // EmailJS Configuration from environment variables
+  const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+  const EMAILJS_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+  const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!formRef.current) return;
+
+    // Validate EmailJS credentials
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+      toast({
+        title: "Configuration Required",
+        description: "Please configure EmailJS credentials in .env file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await emailjs.sendForm(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        formRef.current,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for contacting us. We'll get back to you soon.",
+      });
+
+      // Reset form
+      formRef.current.reset();
+    } catch (error) {
+      console.error("EmailJS Error:", error);
+      toast({
+        title: "Failed to Send",
+        description: "Something went wrong. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const contactInfo = [
     {
       icon: FaEnvelope,
@@ -64,44 +119,65 @@ const Contact = () => {
             className="bg-card rounded-2xl p-8 shadow-soft"
           >
             <h2 className="text-3xl font-bold mb-6">Send us a Message</h2>
-            <form className="space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Name</label>
+                <label htmlFor="user_name" className="block text-sm font-medium mb-2">
+                  Name
+                </label>
                 <Input
+                  id="user_name"
+                  name="user_name"
                   type="text"
                   placeholder="Your name"
                   className="border-border bg-background"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
+                <label htmlFor="user_email" className="block text-sm font-medium mb-2">
+                  Email
+                </label>
                 <Input
+                  id="user_email"
+                  name="user_email"
                   type="email"
                   placeholder="your.email@example.com"
                   className="border-border bg-background"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Subject</label>
+                <label htmlFor="subject" className="block text-sm font-medium mb-2">
+                  Subject
+                </label>
                 <Input
+                  id="subject"
+                  name="subject"
                   type="text"
                   placeholder="How can we help?"
                   className="border-border bg-background"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Message</label>
+                <label htmlFor="message" className="block text-sm font-medium mb-2">
+                  Message
+                </label>
                 <Textarea
+                  id="message"
+                  name="message"
                   placeholder="Tell us more..."
                   rows={6}
                   className="border-border bg-background resize-none"
+                  required
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-lg"
+                disabled={isSubmitting}
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Message
+                {isSubmitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </motion.div>
