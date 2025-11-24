@@ -1,14 +1,6 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/hotels", label: "Hotels" },
-  { to: "/admin/rooms", label: "Rooms" },
-  { to: "/admin/bookings", label: "Bookings" },
-  { to: "/admin/payments", label: "Payments" },
-];
+import Sidebar from "./Sidebar";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -45,27 +37,8 @@ export default function AdminLayout() {
           </div>
         </header>
         <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[220px,1fr] gap-6">
-          <aside className="md:sticky md:top-4 h-max">
-            <div className="rounded-lg border bg-card p-2">
-              {navItems.map((n) => (
-                <NavLink
-                  key={n.to}
-                  to={n.to}
-                  end={n.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "block rounded-md px-3 py-2 text-sm font-medium",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted"
-                    )
-                  }
-                >
-                  {n.label}
-                </NavLink>
-              ))}
-            </div>
-          </aside>
+          <Sidebar />
+
           <main>
             <Outlet />
           </main>
