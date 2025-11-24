@@ -126,150 +126,189 @@ export default function BookingsPage() {
     return d.toLocaleDateString();
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[260px,1fr] gap-6">
-      {/* Hotel list (left) */}
-      <Card className="h-max">
-        <CardHeader>
-          <CardTitle>Hotels</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Button
-            variant={hotelId === "all" ? "default" : "outline"}
-            className="w-full justify-start"
-            onClick={() => setHotelId("all")}
-          >
-            All hotels
-          </Button>
-          {hotelList.map((h) => (
-            <Button
-              key={h.id}
-              variant={hotelId === h.id ? "default" : "outline"}
-              className="w-full flex-col items-start"
-              onClick={() => setHotelId(h.id)}
-            >
-              <span className="font-medium">{h.name}</span>
-              {h.subtitle && (
-                <span className="text-xs text-muted-foreground">
-                  {h.subtitle}
-                </span>
-              )}
-            </Button>
-          ))}
-          {hotelList.length === 0 && !loading && (
-            <p className="text-sm text-muted-foreground">
-              No hotels found.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+  const statusColors = {
+    confirmed: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+    pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+    cancelled: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  };
 
-      {/* Bookings (right) */}
-      <div className="space-y-4">
-        <Card>
+  const paymentColors = {
+    paid: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    pending: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+    failed: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Bookings</h1>
+        <p className="text-muted-foreground mt-1">Manage all hotel reservations</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-6">
+        {/* Hotel list (left) */}
+        <Card className="h-max shadow-lg">
           <CardHeader>
-            <CardTitle>Bookings</CardTitle>
+            <CardTitle className="text-lg">Filter by Hotel</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {loading && (
-              <p className="text-sm text-muted-foreground">
-                Loading bookings...
+          <CardContent className="space-y-2">
+            <Button
+              variant={hotelId === "all" ? "default" : "outline"}
+              className={hotelId === "all" ? "w-full justify-start bg-gradient-to-r from-blue-600 to-indigo-600" : "w-full justify-start"}
+              onClick={() => setHotelId("all")}
+            >
+              All Hotels ({filtered.length})
+            </Button>
+            {hotelList.map((h) => (
+              <Button
+                key={h.id}
+                variant={hotelId === h.id ? "default" : "outline"}
+                className={hotelId === h.id ? "w-full flex-col items-start h-auto py-3 bg-gradient-to-r from-blue-600 to-indigo-600" : "w-full flex-col items-start h-auto py-3"}
+                onClick={() => setHotelId(h.id)}
+              >
+                <span className="font-medium">{h.name}</span>
+                {h.subtitle && (
+                  <span className="text-xs opacity-80">
+                    {h.subtitle}
+                  </span>
+                )}
+              </Button>
+            ))}
+            {hotelList.length === 0 && !loading && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No hotels found.
               </p>
             )}
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <Select
-                value={status}
-                onValueChange={(v) => setStatus(v as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={paymentStatus}
-                onValueChange={(v) => setPaymentStatus(v as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All payments</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-              <Input
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-
-            {/* Table */}
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Hotel</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead>Check-in</TableHead>
-                    <TableHead>Check-out</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((b) => (
-  <TableRow key={b._id}>
-    <TableCell>
-      <div className="font-medium">
-        {b.user?.fullName || "Guest"}
-      </div>
-      <div className="text-xs text-muted-foreground">
-        {b.user?.email}
-      </div>
-    </TableCell>
-    <TableCell>{b.hotel?.name}</TableCell>
-    <TableCell>
-      {b.room
-        ? `#${b.room.roomNumber} • ${b.room.type}`
-        : "-"}
-    </TableCell>
-    <TableCell>{formatDate(b.checkIn)}</TableCell>
-    <TableCell>{formatDate(b.checkOut)}</TableCell>
-    <TableCell className="capitalize">
-      {b.status}
-    </TableCell>
-    <TableCell className="capitalize">
-      {b.paymentStatus}
-    </TableCell>
-    <TableCell>₹{b.totalPrice}</TableCell>
-  </TableRow>   // ✅ correct closing
-))}
-          
-                </TableBody>
-              </Table>
-            </div>
           </CardContent>
         </Card>
+
+        {/* Bookings (right) */}
+        <div className="space-y-4">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">All Bookings</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">{filtered.length} bookings found</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">Loading bookings...</p>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <Select
+                  value={status}
+                  onValueChange={(v) => setStatus(v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="confirmed">✓ Confirmed</SelectItem>
+                    <SelectItem value="pending">⏳ Pending</SelectItem>
+                    <SelectItem value="cancelled">✗ Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={paymentStatus}
+                  onValueChange={(v) => setPaymentStatus(v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payments</SelectItem>
+                    <SelectItem value="paid">💳 Paid</SelectItem>
+                    <SelectItem value="pending">⏳ Pending</SelectItem>
+                    <SelectItem value="failed">✗ Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  placeholder="From date"
+                />
+                <Input
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  placeholder="To date"
+                />
+              </div>
+
+              {/* Table */}
+              <div className="rounded-lg border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 dark:bg-slate-900">
+                        <TableHead className="font-semibold">Guest</TableHead>
+                        <TableHead className="font-semibold">Hotel</TableHead>
+                        <TableHead className="font-semibold">Room</TableHead>
+                        <TableHead className="font-semibold">Check-in</TableHead>
+                        <TableHead className="font-semibold">Check-out</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="font-semibold">Payment</TableHead>
+                        <TableHead className="font-semibold">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((b) => (
+                        <TableRow key={b._id} className="hover:bg-slate-50 dark:hover:bg-slate-900">
+                          <TableCell>
+                            <div className="font-medium">
+                              {b.user?.fullName || "Guest"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {b.user?.email}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">{b.hotel?.name}</TableCell>
+                          <TableCell>
+                            {b.room
+                              ? `#${b.room.roomNumber} • ${b.room.type}`
+                              : "-"}
+                          </TableCell>
+                          <TableCell>{formatDate(b.checkIn)}</TableCell>
+                          <TableCell>{formatDate(b.checkOut)}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColors[b.status]}`}>
+                              {b.status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${paymentColors[b.paymentStatus]}`}>
+                              {b.paymentStatus}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-semibold">₹{b.totalPrice.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                      {filtered.length === 0 && !loading && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            No bookings found matching your filters
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

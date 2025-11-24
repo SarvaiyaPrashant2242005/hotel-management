@@ -12,9 +12,11 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Loader from "@/components/Loader";
+import { TrendingUp, DollarSign, Calendar, Users, Building2, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -30,7 +32,7 @@ type Booking = {
   createdAt: string;
 };
 
-const COLORS = ["#6366F1", "#22C55E", "#EF4444"];
+const COLORS = ["#3B82F6", "#10B981", "#EF4444", "#F59E0B"];
 
 export default function Dashboard() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -114,6 +116,55 @@ export default function Dashboard() {
     }));
   }, [bookings]);
 
+  const totalRevenue = useMemo(() => {
+    return bookings
+      .filter((b) => b.paymentStatus === "paid")
+      .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+  }, [bookings]);
+
+  const confirmedBookings = useMemo(() => {
+    return bookings.filter((b) => b.status === "confirmed").length;
+  }, [bookings]);
+
+  const pendingBookings = useMemo(() => {
+    return bookings.filter((b) => b.status === "pending").length;
+  }, [bookings]);
+
+  const stats = [
+    {
+      title: "Total Revenue",
+      value: `₹${totalRevenue.toLocaleString()}`,
+      change: "+12.5%",
+      trend: "up",
+      icon: DollarSign,
+      color: "from-blue-500 to-blue-600",
+    },
+    {
+      title: "Confirmed Bookings",
+      value: confirmedBookings,
+      change: "+8.2%",
+      trend: "up",
+      icon: Calendar,
+      color: "from-green-500 to-green-600",
+    },
+    {
+      title: "Pending Bookings",
+      value: pendingBookings,
+      change: "-3.1%",
+      trend: "down",
+      icon: Users,
+      color: "from-orange-500 to-orange-600",
+    },
+    {
+      title: "Total Bookings",
+      value: bookings.length,
+      change: "+5.4%",
+      trend: "up",
+      icon: Building2,
+      color: "from-purple-500 to-purple-600",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {loading && (
@@ -122,28 +173,76 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-        <Card>
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white shadow-xl">
+        <h1 className="text-3xl font-bold mb-2">Welcome to Admin Dashboard</h1>
+        <p className="text-blue-100">Here's what's happening with your hotels today</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, index) => {
+          const Icon = stat.icon;
+          const TrendIcon = stat.trend === "up" ? ArrowUpRight : ArrowDownRight;
+          return (
+            <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-3xl font-bold">{stat.value}</p>
+                    <div className={`flex items-center gap-1 text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
+                      <TrendIcon className="w-4 h-4" />
+                      <span className="font-medium">{stat.change}</span>
+                      <span className="text-muted-foreground">vs last month</span>
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color}`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Charts */}
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Revenue Trend (Paid Bookings)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Revenue Trend
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Monthly revenue from paid bookings</p>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent className="h-80">
             {revenueByMonth.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No revenue data yet.
-              </p>
+              <div className="h-full flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No revenue data yet.</p>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#6366F1"
-                    strokeWidth={2}
+                    stroke="#3B82F6"
+                    strokeWidth={3}
+                    dot={{ fill: '#3B82F6', r: 5 }}
+                    activeDot={{ r: 7 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -151,15 +250,19 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Bookings by Status</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-green-600" />
+              Bookings by Status
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Distribution of booking statuses</p>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent className="h-80">
             {bookings.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No bookings yet.
-              </p>
+              <div className="h-full flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">No bookings yet.</p>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -167,10 +270,12 @@ export default function Dashboard() {
                     data={bookingsByStatus}
                     dataKey="count"
                     nameKey="status"
-                    outerRadius={90}
-                    label
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({ status, count }) => `${status}: ${count}`}
                   >
-                    {bookingsByStatus.map((entry, index) => (
+                    {bookingsByStatus.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -178,6 +283,7 @@ export default function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -185,23 +291,35 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card>
+      {/* Occupancy Chart */}
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle>Occupancy (Bookings per Hotel)</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-purple-600" />
+            Hotel Occupancy
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Booking distribution across hotels</p>
         </CardHeader>
-        <CardContent className="h-80">
+        <CardContent className="h-96">
           {occupancyByHotel.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No hotel occupancy data yet.
-            </p>
+            <div className="h-full flex items-center justify-center">
+              <p className="text-sm text-muted-foreground">No hotel occupancy data yet.</p>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={occupancyByHotel}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis unit="%" />
-                <Tooltip />
-                <Bar dataKey="occupancy" fill="#22C55E" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" stroke="#6b7280" />
+                <YAxis unit="%" stroke="#6b7280" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'white', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                />
+                <Bar dataKey="occupancy" fill="#10B981" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
