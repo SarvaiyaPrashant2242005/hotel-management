@@ -3,6 +3,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import CancelBookingDialog from "@/components/CancelBookingDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -24,6 +26,8 @@ type Booking = {
   totalPrice: number;
   status: string;
   paymentStatus: string;
+  paymentOption?: string;
+  advancePayment?: number;
   createdAt: string;
 };
 
@@ -31,6 +35,10 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     const load = async () => {
@@ -71,6 +79,71 @@ const MyBookings = () => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleDateString();
+  };
+
+  const handleCancelClick = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setShowCancelDialog(true);
+  };
+
+  const handleCancelConfirm = async (bookingId: string, reason: string) => {
+    try {
+      setIsCancelling(true);
+      const token = localStorage.getItem("token");
+      
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Please login to cancel booking",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const res = await fetch(`${baseUrl}/api/bookings/${bookingId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message || "Failed to cancel booking");
+      }
+
+      const data = await res.json();
+
+      // Update bookings list
+      setBookings((prev) =>
+        prev.map((b) =>
+          b._id === bookingId ? { ...b, status: "cancelled" } : b
+        )
+      );
+
+      toast({
+        title: "Booking Cancelled",
+        description: data.message || "Your booking has been cancelled successfully.",
+      });
+
+      setShowCancelDialog(false);
+      setSelectedBooking(null);
+    } catch (err: any) {
+      toast({
+        title: "Cancellation Failed",
+        description: err.message || "Failed to cancel booking",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const canCancelBooking = (booking: Booking) => {
+    // Can cancel if status is pending or confirmed (not already cancelled)
+    return booking.status !== "cancelled";
   };
 
   return (
@@ -144,19 +217,32 @@ const MyBookings = () => {
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">
                     Total Amount
                   </p>
-                  <p className="text-xl font-bold">₹{b.totalPrice}</p>
+                  <p className="text-xl font-bold">₹{b.totalPrice.toLocaleString()}</p>
+                  {b.paymentOption === "pay-at-hotel" && b.paymentStatus === "paid" && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Paid: ₹{(b.advancePayment || Math.round(b.totalPrice * 0.1)).toLocaleString()} (10%)
+                    </p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                    Booking: {b.status}
+                <div className="flex gap-2 flex-wrap justify-end">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      b.status === "confirmed"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : b.status === "cancelled"
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    }`}
+                  >
+                    {b.status === "confirmed" ? "✓ Confirmed" : b.status === "cancelled" ? "✗ Cancelled" : "⏳ Pending"}
                   </span>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
                       b.paymentStatus === "paid"
-                        ? "bg-emerald-100 text-emerald-700"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                         : b.paymentStatus === "failed"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                     }`}
                   >
                     Payment: {b.paymentStatus}
@@ -165,9 +251,17 @@ const MyBookings = () => {
                 <p className="text-xs text-muted-foreground">
                   Booked on {formatDate(b.createdAt)}
                 </p>
-                <Button variant="outline" size="sm" disabled>
-                  View Details
-                </Button>
+                <div className="flex gap-2">
+                  {canCancelBooking(b) && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleCancelClick(b)}
+                    >
+                      Cancel Booking
+                    </Button>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -175,6 +269,20 @@ const MyBookings = () => {
       </section>
 
       <Footer />
+
+      {/* Cancel Booking Dialog */}
+      {selectedBooking && (
+        <CancelBookingDialog
+          open={showCancelDialog}
+          onOpenChange={(open) => {
+            setShowCancelDialog(open);
+            if (!open) setSelectedBooking(null);
+          }}
+          booking={selectedBooking}
+          onConfirm={handleCancelConfirm}
+          isProcessing={isCancelling}
+        />
+      )}
     </div>
   );
 };

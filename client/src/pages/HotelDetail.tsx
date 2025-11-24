@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import RoomList from "@/components/RoomList";
 import Loader from "@/components/Loader";
+import PaymentOptionsDialog from "@/components/PaymentOptionsDialog";
 
 const baseUrl = "https://hotel-management-plc3.onrender.com";
 
@@ -64,6 +65,11 @@ const HotelDetail = () => {
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(2);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  
+  // payment options dialog state
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -135,17 +141,11 @@ const HotelDetail = () => {
         typeof window !== "undefined"
           ? localStorage.getItem("token")
           : null;
-      const rawUser =
-        typeof window !== "undefined"
-          ? localStorage.getItem("user")
-          : null;
 
       if (!token) {
         const redirect = encodeURIComponent(window.location.pathname + window.location.search);
         return navigate(`/login?redirect=${redirect}`, { replace: true });
       }
-
-      const user = rawUser ? JSON.parse(rawUser) : null;
 
       if (!checkIn || !checkOut) {
         alert("Please select check-in and check-out dates.");
@@ -158,10 +158,34 @@ const HotelDetail = () => {
         return;
       }
 
-      const basePerNight = room.price + (room.taxesAndFees || 0);
+      // Show payment options dialog
+      setSelectedRoom(room);
+      setShowPaymentDialog(true);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to initiate booking");
+    }
+  };
+
+  const handlePaymentOptionConfirm = async (paymentOption: "pay-now" | "pay-at-hotel") => {
+    try {
+      if (!hotel || !selectedRoom) return;
+
+      const token = localStorage.getItem("token");
+      const rawUser = localStorage.getItem("user");
+      const user = rawUser ? JSON.parse(rawUser) : null;
+
+      const nights = getNights(checkIn, checkOut);
+      const basePerNight = selectedRoom.price + (selectedRoom.taxesAndFees || 0);
       const totalPrice = basePerNight * nights;
 
-      setActiveRoomId(room._id);
+      setIsProcessing(true);
+      setActiveRoomId(selectedRoom._id);
+
+      // Determine payment amount based on option
+      const paymentAmount = paymentOption === "pay-now" 
+        ? totalPrice 
+        : Math.round(totalPrice * 0.1); // 10% advance for pay-at-hotel
 
       // 1) Create booking
       const bookingRes = await fetch(`${baseUrl}/api/bookings`, {
@@ -172,10 +196,12 @@ const HotelDetail = () => {
         },
         body: JSON.stringify({
           hotelId: hotel._id,
-          roomId: room._id,
+          roomId: selectedRoom._id,
           checkIn,
           checkOut,
           totalPrice,
+          paymentOption,
+          advancePayment: paymentOption === "pay-at-hotel" ? paymentAmount : totalPrice,
         }),
       });
 
@@ -191,14 +217,17 @@ const HotelDetail = () => {
         throw new Error("Booking ID missing from response");
       }
 
-      // 2) Create Razorpay order
+      // 2) Create Razorpay order with appropriate amount
       const orderRes = await fetch(`${baseUrl}/api/payments/create-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ bookingId }),
+        body: JSON.stringify({ 
+          bookingId,
+          amount: paymentAmount,
+        }),
       });
 
       if (!orderRes.ok) {
@@ -209,12 +238,16 @@ const HotelDetail = () => {
       const orderData = await orderRes.json();
       await loadRazorpayScript();
 
+      const paymentDescription = paymentOption === "pay-now"
+        ? `Full payment for room ${selectedRoom.roomNumber}`
+        : `Advance payment (10%) for room ${selectedRoom.roomNumber}`;
+
       const options = {
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: hotel.name,
-        description: `Booking for room ${room.roomNumber}`,
+        description: paymentDescription,
         order_id: orderData.orderId,
         prefill: {
           name: user?.fullName || "",
@@ -246,16 +279,26 @@ const HotelDetail = () => {
               return;
             }
 
-            alert("Payment successful! Your booking is confirmed.");
+            const successMessage = paymentOption === "pay-now"
+              ? "Payment successful! Your booking is confirmed."
+              : `Advance payment successful! You've paid ₹${paymentAmount.toLocaleString()} (10%). Remaining ₹${(totalPrice - paymentAmount).toLocaleString()} to be paid at hotel.`;
+            
+            alert(successMessage);
+            setShowPaymentDialog(false);
+            setSelectedRoom(null);
           } catch (err: any) {
             alert(err?.message || "Payment verification failed");
           } finally {
             setActiveRoomId(null);
+            setIsProcessing(false);
           }
         },
         modal: {
           ondismiss: () => {
+            alert("Payment cancelled. Your booking is saved as pending. You can complete payment from My Bookings page or cancel the booking.");
             setActiveRoomId(null);
+            setIsProcessing(false);
+            setShowPaymentDialog(false);
           },
         },
       };
@@ -266,6 +309,7 @@ const HotelDetail = () => {
       console.error(err);
       alert(err?.message || "Failed to start payment");
       setActiveRoomId(null);
+      setIsProcessing(false);
     }
   };
 
@@ -459,6 +503,29 @@ const HotelDetail = () => {
       </section>
 
       <Footer />
+
+      {/* Payment Options Dialog */}
+      {selectedRoom && (
+        <PaymentOptionsDialog
+          open={showPaymentDialog}
+          onOpenChange={(open) => {
+            setShowPaymentDialog(open);
+            if (!open) {
+              setSelectedRoom(null);
+              setActiveRoomId(null);
+            }
+          }}
+          roomDetails={{
+            roomNumber: selectedRoom.roomNumber,
+            type: selectedRoom.title || selectedRoom.type,
+            pricePerNight: selectedRoom.price + (selectedRoom.taxesAndFees || 0),
+            nights: getNights(checkIn, checkOut),
+            totalPrice: (selectedRoom.price + (selectedRoom.taxesAndFees || 0)) * getNights(checkIn, checkOut),
+          }}
+          onConfirm={handlePaymentOptionConfirm}
+          isProcessing={isProcessing}
+        />
+      )}
     </div>
   );
 };
