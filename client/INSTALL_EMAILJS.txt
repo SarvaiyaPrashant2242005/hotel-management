@@ -1,5 +1,0 @@
-To complete the EmailJS integration, run this command in the client folder:
-
-npm install @emailjs/browser
-
-Then follow the setup instructions in EMAILJS_SETUP.md
