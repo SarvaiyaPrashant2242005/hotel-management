@@ -41,7 +41,7 @@ const About = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl font-bold mb-6"
           >
-            About StayEase
+            About WonderPathe
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -88,7 +88,7 @@ const About = () => {
               <h2 className="text-4xl font-bold mb-8 text-center">Our Story</h2>
               <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
                 <p>
-                  Founded in 2020, StayEase was born from a simple idea: booking hotels should be as easy and enjoyable as the trips themselves. Our founders, seasoned travelers frustrated with complicated booking processes, set out to create a platform that puts the joy back into travel planning.
+                  Founded in 2020, WonderPathe was born from a simple idea: booking hotels should be as easy and enjoyable as the trips themselves. Our founders, seasoned travelers frustrated with complicated booking processes, set out to create a platform that puts the joy back into travel planning.
                 </p>
                 <p>
                   Today, we partner with over 500 hotels across 50 countries, from boutique hideaways to luxury resorts. Our carefully curated selection ensures that every property meets our high standards for quality, comfort, and value.
@@ -111,7 +111,7 @@ const About = () => {
         >
           <h2 className="text-4xl font-bold mb-4 text-center">Meet Our Team</h2>
           <p className="text-center text-muted-foreground mb-12 text-lg">
-            The passionate people behind StayEase
+            The passionate people behind WonderPathe
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">

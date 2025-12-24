@@ -45,7 +45,7 @@ const Footer = () => {
             >
               <FaHotel className="text-3xl text-primary" />
               <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                StayEase
+                WonderPathe
               </span>
             </motion.div>
             <motion.p
@@ -115,7 +115,7 @@ const Footer = () => {
           transition={{ delay: 0.4 }}
           className="border-t border-border mt-12 pt-8 text-center text-muted-foreground"
         >
-          <p>&copy; {new Date().getFullYear()} StayEase. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} WonderPathe. All rights reserved.</p>
         </motion.div>
       </div>
     </footer>

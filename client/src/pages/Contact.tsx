@@ -66,8 +66,8 @@ const Contact = () => {
     {
       icon: FaEnvelope,
       title: "Email",
-      content: "support@stayease.com",
-      link: "mailto:support@stayease.com",
+      content: "support@WonderPathe.com",
+      link: "mailto:support@WonderPathe.com",
     },
     {
       icon: FaPhone,

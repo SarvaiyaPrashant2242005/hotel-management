@@ -68,7 +68,7 @@ const Navbar = () => {
               <FaHotel className="text-3xl text-teal-400" />
             </motion.div>
             <span className="text-2xl font-bold text-teal-400">
-              StayEase
+              WonderPath
             </span>
           </Link>
 
