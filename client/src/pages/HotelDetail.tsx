@@ -8,7 +8,7 @@ import RoomList from "@/components/RoomList";
 import Loader from "@/components/Loader";
 import PaymentOptionsDialog from "@/components/PaymentOptionsDialog";
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 // allow window.Razorpay
 declare global {

@@ -14,7 +14,7 @@ interface RoomPhotoManagerProps {
   onImagesUpdate?: (images: string[]) => void;
 }
 
-const baseApiUrl = "http://localhost:5000";
+const baseApiUrl = "https://hotel-management-plc3.onrender.com";
 
 export default function RoomPhotoManager({ 
   roomId, 

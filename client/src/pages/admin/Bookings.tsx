@@ -34,7 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 type Hotel = {
   _id: string;

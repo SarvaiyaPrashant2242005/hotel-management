@@ -8,7 +8,7 @@ import SearchBar, { SearchParams } from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 const Hotels = () => {
   const [hotels, setHotels] = useState<PublicHotel[]>([]);

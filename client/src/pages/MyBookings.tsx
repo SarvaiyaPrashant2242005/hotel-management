@@ -7,7 +7,7 @@ import CancelBookingDialog from "@/components/CancelBookingDialog";
 import PaymentOptionsDialog from "@/components/PaymentOptionsDialog";
 import { useToast } from "@/hooks/use-toast";
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 // allow window.Razorpay
 declare global {

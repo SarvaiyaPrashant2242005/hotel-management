@@ -54,7 +54,7 @@ npm run dev
 npm start
 ```
 
-Server runs at: http://localhost:5000
+Server runs at: https://hotel-management-plc3.onrender.com
 
 ## 📁 Project Structure
 
@@ -435,7 +435,7 @@ User Cancels → "cancelled"
 
 #### Create Booking
 ```bash
-curl -X POST http://localhost:5000/api/bookings \
+curl -X POST https://hotel-management-plc3.onrender.com/api/bookings \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -451,7 +451,7 @@ curl -X POST http://localhost:5000/api/bookings \
 
 #### Cancel Booking
 ```bash
-curl -X PUT http://localhost:5000/api/bookings/BOOKING_ID/cancel \
+curl -X PUT https://hotel-management-plc3.onrender.com/api/bookings/BOOKING_ID/cancel \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"reason": "Plans changed"}'

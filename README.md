@@ -88,7 +88,7 @@ npm run dev
 ### 5. Access the Application
 - **Customer Portal**: http://localhost:5173
 - **Admin Panel**: http://localhost:5173/admin
-- **Backend API**: http://localhost:5000
+- **Backend API**: https://hotel-management-plc3.onrender.com
 
 ## 📚 Documentation
 

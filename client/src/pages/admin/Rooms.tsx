@@ -74,7 +74,7 @@ type RoomItem = {
   images?: string[];
 };
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 export default function RoomsPage() {
   const qc = useQueryClient();

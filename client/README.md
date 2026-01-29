@@ -48,7 +48,7 @@ npm install
 ### 2. Environment Setup
 Create `.env` file:
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=https://hotel-management-plc3.onrender.com
 VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
 

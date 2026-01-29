@@ -6,7 +6,7 @@ import SearchBar, { SearchParams } from "@/components/SearchBar";
 import HotelCard, { PublicHotel } from "@/components/HotelCard";
 import FeaturedSlider from "@/components/FeaturedSlider";
 
-const baseUrl = "http://localhost:5000";
+const baseUrl = "https://hotel-management-plc3.onrender.com";
 
 const Home = () => {
   const [hotels, setHotels] = useState<PublicHotel[]>([]);

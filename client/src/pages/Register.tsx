@@ -41,7 +41,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const baseUrl = "http://localhost:5000";
+      const baseUrl = "https://hotel-management-plc3.onrender.com";
  
       const res = await fetch(`${baseUrl}/api/users/register`, {
         method: "POST",
