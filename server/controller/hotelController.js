@@ -40,10 +40,38 @@ const hotelController = {
     }
   },
 
-  // 📋 Get all hotels (Admin can see all)
+  // 📋 Get all hotels with search and filtering
   getAllHotels: async (req, res) => {
     try {
-      const hotels = await Hotel.find().populate("owner", "fullName email");
+      const { location, city, country, name } = req.query;
+      
+      // Build search query
+      let searchQuery = {};
+      
+      if (location) {
+        // Search in multiple fields for location
+        searchQuery.$or = [
+          { city: { $regex: location, $options: 'i' } },
+          { state: { $regex: location, $options: 'i' } },
+          { country: { $regex: location, $options: 'i' } },
+          { address: { $regex: location, $options: 'i' } },
+          { name: { $regex: location, $options: 'i' } }
+        ];
+      }
+      
+      if (city) {
+        searchQuery.city = { $regex: city, $options: 'i' };
+      }
+      
+      if (country) {
+        searchQuery.country = { $regex: country, $options: 'i' };
+      }
+      
+      if (name) {
+        searchQuery.name = { $regex: name, $options: 'i' };
+      }
+
+      const hotels = await Hotel.find(searchQuery).populate("owner", "fullName email");
       res.json(hotels);
     } catch (error) {
       res.status(500).json({ message: error.message });

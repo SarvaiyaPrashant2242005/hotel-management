@@ -39,7 +39,13 @@ router.get("/hotel/:hotelId", roomController.getRoomsByHotelId);
 router.get("/:id", roomController.getRoomById);
 
 // ✏️ Update room (Admin only)
-router.put("/:id", verifyToken, isAdmin, roomController.updateRoom);
+router.put("/:id", verifyToken, isAdmin, upload.array("images", 10), roomController.updateRoom);
+
+// 🖼️ Delete specific image from room (Admin only)
+router.delete("/:roomId/images/:imageIndex", verifyToken, isAdmin, roomController.deleteRoomImage);
+
+// 🔄 Reorder room images (Admin only)
+router.put("/:roomId/images/reorder", verifyToken, isAdmin, roomController.reorderRoomImages);
 
 // ❌ Delete room (Admin only)
 router.delete("/:id", verifyToken, isAdmin, roomController.deleteRoom);

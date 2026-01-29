@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import RoomPhotoManager from "@/components/RoomPhotoManager";
 
 type RoomStatus = "available" | "occupied" | "maintenance";
 
@@ -73,7 +74,7 @@ type RoomItem = {
   images?: string[];
 };
 
-const baseUrl = "https://hotel-management-plc3.onrender.com";
+const baseUrl = "http://localhost:5000";
 
 export default function RoomsPage() {
   const qc = useQueryClient();
@@ -304,25 +305,58 @@ export default function RoomsPage() {
   };
 
   const updateRoomMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
-      const res = await fetch(`${baseUrl}/api/rooms/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.message || "Failed to update room");
+    mutationFn: async ({ id, payload, newImages }: { id: string; payload: any; newImages?: File[] }) => {
+      if (newImages && newImages.length > 0) {
+        // If there are new images, use FormData
+        const formData = new FormData();
+        Object.keys(payload).forEach(key => {
+          if (key === 'amenities' && Array.isArray(payload[key])) {
+            formData.append(key, JSON.stringify(payload[key]));
+          } else {
+            formData.append(key, payload[key]);
+          }
+        });
+        
+        newImages.forEach(file => {
+          formData.append("images", file);
+        });
+
+        const res = await fetch(`${baseUrl}/api/rooms/${id}`, {
+          method: "PUT",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || "Failed to update room");
+        }
+        return res.json();
+      } else {
+        // No new images, use JSON
+        const res = await fetch(`${baseUrl}/api/rooms/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || "Failed to update room");
+        }
+        return res.json();
       }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-rooms"] });
       setEditingId(null);
       setOpen(false);
+      setImages([]);
     },
   });
 
@@ -425,25 +459,18 @@ export default function RoomsPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-[2fr,1fr] gap-4">
-                  <div className="space-y-1 text-sm">
-                    {r.images && r.images.length > 0 && (
-                      <div className="mb-2">
-                        <div className="flex gap-2 overflow-x-auto">
-                          {r.images.map((src, idx) => {
-                            const url = src.startsWith("http")
-                              ? src
-                              : `${baseUrl}${src}`;
-                            return (
-                            <img
-                              key={idx}
-                              src={url}
-                              alt={`Room image ${idx + 1}`}
-                              className="h-24 w-32 object-cover rounded border"
-                            />
-                          )})}
-                        </div>
-                      </div>
-                    )}
+                  <div className="space-y-3 text-sm">
+                    {/* Photo Manager Component */}
+                    <RoomPhotoManager
+                      roomId={r.id}
+                      images={r.images || []}
+                      baseUrl={baseUrl}
+                      onImagesUpdate={(newImages) => {
+                        // Optionally update local state or refetch
+                        qc.invalidateQueries({ queryKey: ["admin-rooms"] });
+                      }}
+                    />
+                    
                     <p className="font-medium">{hotels.find(h => h.id === r.hotelId)?.name}</p>
                     <p className="text-xs text-muted-foreground">Room {r.roomNumber} • {r.type}</p>
                     <div className="flex flex-wrap gap-2 text-xs mt-2">
@@ -536,8 +563,39 @@ export default function RoomsPage() {
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
-              {!editingId && (
-                <Input type="file" multiple accept="image/*" onChange={(e) => setImages(e.target.files ? Array.from(e.target.files) : [])} />
+            </div>
+
+            {/* Image upload for both create and edit */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {editingId ? "Add More Photos" : "Upload Photos"}
+              </label>
+              <Input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={(e) => setImages(e.target.files ? Array.from(e.target.files) : [])} 
+              />
+              {images.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {images.map((file, idx) => (
+                    <div key={idx} className="relative">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${idx + 1}`}
+                        className="h-16 w-20 object-cover rounded border"
+                      />
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-5 w-5 p-0"
+                        onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -568,22 +626,28 @@ export default function RoomsPage() {
               {editingId ? (
                 <Button onClick={() => {
                   const amenitiesArray = form.amenities ? form.amenities.split(",").map(a => a.trim()).filter(Boolean) : [];
-                  updateRoomMutation.mutate({ id: editingId, payload: {
-                    hotel: form.hotelId || defaultHotelId,
-                    roomNumber: form.roomNumber,
-                    type: form.type,
-                    price: Number(form.price || 0),
-                    capacity: Number(form.capacity || 0),
-                    isAvailable: form.status === "available",
-                    title: form.title || undefined,
-                    sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : undefined,
-                    view: form.view || undefined,
-                    bedType: form.bedType || undefined,
-                    bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-                    amenities: amenitiesArray,
-                    mealPlan: form.mealPlan,
-                  } });
-                }} disabled={updateRoomMutation.isPending}>Update Room</Button>
+                  updateRoomMutation.mutate({ 
+                    id: editingId, 
+                    payload: {
+                      hotel: form.hotelId || defaultHotelId,
+                      roomNumber: form.roomNumber,
+                      type: form.type,
+                      price: Number(form.price || 0),
+                      capacity: Number(form.capacity || 0),
+                      isAvailable: form.status === "available",
+                      title: form.title || undefined,
+                      sizeSqft: form.sizeSqft ? Number(form.sizeSqft) : undefined,
+                      view: form.view || undefined,
+                      bedType: form.bedType || undefined,
+                      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+                      amenities: amenitiesArray,
+                      mealPlan: form.mealPlan,
+                    },
+                    newImages: images.length > 0 ? images : undefined
+                  });
+                }} disabled={updateRoomMutation.isPending}>
+                  {updateRoomMutation.isPending ? "Updating..." : "Update Room"}
+                </Button>
               ) : (
                 <Button onClick={addRoom} disabled={createRoomMutation.isPending}>
                   {createRoomMutation.isPending ? "Adding..." : "Add Room"}

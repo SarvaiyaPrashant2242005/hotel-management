@@ -19,7 +19,7 @@ type Hotel = {
   owner?: string;
 };
 
-const baseUrl = "https://hotel-management-plc3.onrender.com";
+const baseUrl = "http://localhost:5000";
 
 export default function HotelsPage() {
   const qc = useQueryClient();

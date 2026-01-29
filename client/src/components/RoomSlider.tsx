@@ -98,6 +98,12 @@ const RoomSlider = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomSliderPro
                       <p className="text-xs text-muted-foreground">
                         Room {r.roomNumber} • Capacity: {r.capacity} guest{r.capacity > 1 ? "s" : ""}
                       </p>
+                      {imgs.length > 1 && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          {imgs.length} photos available
+                        </p>
+                      )}
+                    </div>
                       <div className="flex flex-wrap gap-2 text-xs mt-2 text-muted-foreground">
                         {r.sizeSqft && <span>{r.sizeSqft} sq.ft</span>}
                         {r.view && <span>{r.view}</span>}
@@ -162,7 +168,7 @@ const RoomSlider = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomSliderPro
           <Dialog open={isOpen} onOpenChange={(o) => !o && setOpenRoomId(null)} key={`dlg-${r._id}`}>
             <DialogContent className="max-w-3xl p-0 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2">
-                <div className="bg-black/5">
+                <div className="bg-black/5 relative">
                   <Carousel className="w-full" opts={{ loop: true }}>
                     <CarouselContent>
                       {normalized.map((src, i) => (
@@ -173,9 +179,18 @@ const RoomSlider = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomSliderPro
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    <CarouselPrevious className="left-2" />
-                    <CarouselNext className="right-2" />
+                    {normalized.length > 1 && (
+                      <>
+                        <CarouselPrevious className="left-2" />
+                        <CarouselNext className="right-2" />
+                      </>
+                    )}
                   </Carousel>
+                  {normalized.length > 1 && (
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      {normalized.length} photos
+                    </div>
+                  )}
                 </div>
                 <div className="p-6 space-y-3">
                   <DialogHeader>

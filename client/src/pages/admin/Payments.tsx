@@ -26,7 +26,7 @@ import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Loader from "@/components/Loader";
 
-const baseUrl = "https://hotel-management-plc3.onrender.com";
+const baseUrl = "http://localhost:5000";
 
 type Booking = {
   _id: string;

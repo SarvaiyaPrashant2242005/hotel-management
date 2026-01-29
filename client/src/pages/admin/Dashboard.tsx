@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Loader from "@/components/Loader";
 import { TrendingUp, DollarSign, Calendar, Users, Building2, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
-const baseUrl = "https://hotel-management-plc3.onrender.com";
+const baseUrl = "http://localhost:5000";
 
 type Booking = {
   _id: string;

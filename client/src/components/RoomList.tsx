@@ -86,9 +86,23 @@ const RoomList = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomListProps) 
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  <CarouselPrevious className="left-2" />
-                  <CarouselNext className="right-2" />
+                  {normalized.length > 1 && (
+                    <>
+                      <CarouselPrevious className="left-2" />
+                      <CarouselNext className="right-2" />
+                    </>
+                  )}
                 </Carousel>
+                {normalized.length > 1 && (
+                  <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    {normalized.length} photos
+                  </div>
+                )}
+                {r.dealText && (
+                  <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                    {r.dealText}
+                  </div>
+                )}
               </div>
 
               {/* Right: content */}
@@ -117,9 +131,6 @@ const RoomList = ({ rooms, onBook, activeRoomId, baseUrl = "" }: RoomListProps) 
                   </div>
 
                   <div className="text-right min-w-[150px]">
-                    {r.dealText && (
-                      <div className="inline-block bg-rose-600 text-white text-xs px-2 py-1 rounded mb-2">{r.dealText}</div>
-                    )}
                     {typeof r.strikePrice === "number" && (
                       <p className="text-xs line-through text-muted-foreground">₹{r.strikePrice}</p>
                     )}
