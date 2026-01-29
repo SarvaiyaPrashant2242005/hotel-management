@@ -23,7 +23,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ✅ Enable CORS for your frontend origin
 app.use(
   cors({
-origin: ["http://localhost:8080", "https://hotel-management-rose-zeta.vercel.app"],
+    origin: ["http://localhost:8080", "https://hotel-management-rose-zeta.vercel.app", "https://wonderpath.pages.dev"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // if you use cookies or authentication
   })
